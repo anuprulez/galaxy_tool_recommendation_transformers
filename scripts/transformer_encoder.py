@@ -1,22 +1,18 @@
 import os
-import time
 import random
 import numpy as np
-import subprocess
-import sys
-import json
 
 import tensorflow as tf
-from tensorflow.keras.layers import MultiHeadAttention, LayerNormalization, Dropout, Input, GlobalAveragePooling1D, Dense
+from tensorflow.keras.layers import Dense, Dropout, GlobalAveragePooling1D, Input
 from tensorflow.keras.models import Model
 
 import utils
 import transformer_network
 
 
-embed_dim = 128 # Embedding size for each token d_mode
-num_heads = 4 # Number of attention heads
-ff_dim = 128 # Hidden layer size in feed forward network inside transformer # dff
+embed_dim = 128
+num_heads = 4
+ff_dim = 128
 dropout = 0.1
 n_train_batches = 50
 batch_size = 512
@@ -58,7 +54,6 @@ def get_u_labels(y_train):
         if last_tool not in ulabels_dict:
             ulabels_dict[last_tool] = list()
         ulabels_dict[last_tool].append(item)
-        seq = ",".join([str(int(a)) for a in arr_seq[0:label_pos[-1] + 1]])
         last_tools.append(last_tool)
     u_labels = list(set(last_tools))
     random.shuffle(u_labels)
@@ -101,9 +96,7 @@ def get_u_tr_path(x_tr):
             if t not in tools_pos_dict:
                 tools_pos_dict[t] = list()
             tools_pos_dict[t].append(i)
-
     u_tools = list(set(tools))
-    
     for item in tools_pos_dict:
         tools_pos_dict[item] = list(set(tools_pos_dict[item]))
     return u_tools, tools_pos_dict
@@ -119,9 +112,7 @@ def get_u_tr_labels(y_tr):
             if label not in labels_pos_dict:
                 labels_pos_dict[label] = list()
             labels_pos_dict[label].append(i)
-
     u_labels = list(set(labels))
-    
     for item in labels_pos_dict:
         labels_pos_dict[item] = list(set(labels_pos_dict[item]))
     return u_labels, labels_pos_dict
@@ -144,13 +135,12 @@ def sample_balanced_te_y(x_seqs, y_labels, ulabels_tr_y_dict, b_size):
             label_tools.append(l_tool)
         if len(rand_batch_indices) == b_size:
             break
-    
     x_batch_train = x_seqs[rand_batch_indices]
     y_batch_train = y_labels[rand_batch_indices]
 
     unrolled_x = tf.convert_to_tensor(x_batch_train, dtype=tf.int64)
     unrolled_y = tf.convert_to_tensor(y_batch_train, dtype=tf.int64)
-    return unrolled_x, unrolled_y, sel_tools     
+    return unrolled_x, unrolled_y, sel_tools
 
 
 def sample_balanced_tr_y(x_seqs, y_labels, ulabels_tr_y_dict, b_size, tr_t_freq, prev_sel_tools):
@@ -206,11 +196,9 @@ def validate_model(te_x, te_y, model, f_dict, r_dict, ulabels_te_dict, tr_labels
     te_pred_batch, att_weights = model(te_x_batch, training=False)
     test_acc = tf.reduce_mean(compute_acc(y_train_batch, te_pred_batch))
     test_err, test_categorical_loss = compute_loss(y_train_batch, te_pred_batch)
-
     te_pre_precision = list()
-    
     for idx in range(te_pred_batch.shape[0]):
-        label_pos = np.where(y_train_batch[idx] > 0)[0] 
+        label_pos = np.where(y_train_batch[idx] > 0)[0]
         # verify only on those tools are present in labels in training
         label_pos = list(set(tr_labels).intersection(set(label_pos)))
         topk_pred = tf.math.top_k(te_pred_batch[idx], k=len(label_pos), sorted=True)
@@ -218,7 +206,7 @@ def validate_model(te_x, te_y, model, f_dict, r_dict, ulabels_te_dict, tr_labels
         try:
             label_pos_tools = [r_dict[str(item)] for item in label_pos if item not in [0, "0"]]
             pred_label_pos_tools = [r_dict[str(item)] for item in topk_pred if item not in [0, "0"]]
-        except:
+        except Exception as e:
             label_pos_tools = [r_dict[item] for item in label_pos if item not in [0, "0"]]
             pred_label_pos_tools = [r_dict[item] for item in topk_pred if item not in [0, "0"]]
         intersection = list(set(label_pos_tools).intersection(set(pred_label_pos_tools)))
@@ -249,7 +237,7 @@ def validate_model(te_x, te_y, model, f_dict, r_dict, ulabels_te_dict, tr_labels
         try:
             low_label_pos_tools = [r_dict[str(item)] for item in low_label_pos if item not in [0, "0"]]
             low_pred_label_pos_tools = [r_dict[str(item)] for item in low_topk_pred if item not in [0, "0"]]
-        except:
+        except Exception as e:
             low_label_pos_tools = [r_dict[item] for item in low_label_pos if item not in [0, "0"]]
             low_pred_label_pos_tools = [r_dict[item] for item in low_topk_pred if item not in [0, "0"]]
 
@@ -295,7 +283,6 @@ def create_enc_transformer(train_data, train_labels, test_data, test_labels, f_d
     all_sel_tool_ids = list()
     epo_te_precision = list()
     epo_low_te_precision = list()
-    c_weights = tf.convert_to_tensor(list(c_wts.values()), dtype=tf.float32)
 
     te_lowest_t_ids = utils.get_low_freq_te_samples(test_data, test_labels, tr_t_freq)
     utils.write_file(base_path + "data/te_lowest_t_ids.txt", ",".join([str(item) for item in te_lowest_t_ids]))
@@ -304,15 +291,10 @@ def create_enc_transformer(train_data, train_labels, test_data, test_labels, f_d
 
     sel_tools = list()
     for batch in range(n_train_batches):
-        
         print("Total train data size: ", train_data.shape, train_labels.shape)
-
         x_train, y_train, sel_tools = sample_balanced_tr_y(train_data, train_labels, u_tr_y_labels_dict, batch_size, tr_t_freq, sel_tools)
-
         print("Batch train data size: ", x_train.shape, y_train.shape)
-        
         all_sel_tool_ids.extend(sel_tools)
-
         with tf.GradientTape() as model_tape:
             prediction, att_weights = model(x_train, training=True)
             tr_loss, tr_cat_loss = compute_loss(y_train, prediction)
@@ -335,7 +317,6 @@ def create_enc_transformer(train_data, train_labels, test_data, test_labels, f_d
         print()
         if (batch+1) % train_logging_step == 0:
             print("Saving model at training step {}/{}".format(batch + 1, n_train_batches))
-
             tf_path = model_path + "{}/".format(batch+1)
             tf_model_save = model_path + "{}/tf_model/".format(batch+1)
             tf_model_save_h5 = model_path + "{}/tf_model_h5/".format(batch+1)
@@ -343,10 +324,8 @@ def create_enc_transformer(train_data, train_labels, test_data, test_labels, f_d
                 os.mkdir(tf_path)
                 os.mkdir(tf_model_save)
                 os.mkdir(tf_model_save_h5)
-
             tf.saved_model.save(model, tf_model_save)
             utils.save_model_file(tf_model_save_h5, model, r_dict, c_wts, compatible_tools, published_connections)
-
     new_dict = dict()
     for k in u_tr_y_labels_dict:
         new_dict[str(k)] = ",".join([str(item) for item in u_tr_y_labels_dict[k]])

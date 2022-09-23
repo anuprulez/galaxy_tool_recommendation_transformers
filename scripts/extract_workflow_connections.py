@@ -23,7 +23,6 @@ class ExtractWorkflowConnections:
         print("Removing pipe from tabular datasets...")
         wf_frame = utils.remove_pipe(wf_path)
         tool_popu_frame = utils.remove_pipe(tool_popu_path)
-        wf_frame = wf_frame[:10000]
         return wf_frame, tool_popu_frame
 
 

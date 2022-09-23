@@ -1,9 +1,6 @@
 import os
-import time
 import random
 import numpy as np
-import subprocess
-import sys
 
 import tensorflow as tf
 from tensorflow.keras.layers import Dropout, Embedding, Input, Dense, GRU
@@ -11,9 +8,9 @@ from tensorflow.keras.models import Model
 
 import utils
 
-# Config for training RNN
-embed_dim = 128 # Embedding size for each token d_model
-ff_dim = 128 # Hidden layer size in feed forward network inside transformer # dff
+
+embed_dim = 128
+ff_dim = 128
 dropout = 0.1
 n_train_batches = 50
 batch_size = 128
@@ -107,13 +104,12 @@ def sample_balanced_te_y(x_seqs, y_labels, ulabels_tr_y_dict, b_size):
             label_tools.append(l_tool)
         if len(rand_batch_indices) == b_size:
             break
-    
     x_batch_train = x_seqs[rand_batch_indices]
     y_batch_train = y_labels[rand_batch_indices]
 
     unrolled_x = tf.convert_to_tensor(x_batch_train, dtype=tf.int64)
     unrolled_y = tf.convert_to_tensor(y_batch_train, dtype=tf.int64)
-    return unrolled_x, unrolled_y, sel_tools     
+    return unrolled_x, unrolled_y, sel_tools
 
 
 def sample_balanced_tr_y(x_seqs, y_labels, ulabels_tr_y_dict, b_size, tr_t_freq, prev_sel_tools):
@@ -166,9 +162,9 @@ def validate_model(te_x, te_y, model, f_dict, r_dict, ulabels_te_dict, tr_labels
     test_err, test_categorical_loss = compute_loss(y_train_batch, te_pred_batch)
 
     te_pre_precision = list()
-    
+
     for idx in range(te_pred_batch.shape[0]):
-        label_pos = np.where(y_train_batch[idx] > 0)[0] 
+        label_pos = np.where(y_train_batch[idx] > 0)[0]
         # verify only on those tools are present in labels in training
         label_pos = list(set(tr_labels).intersection(set(label_pos)))
         topk_pred = tf.math.top_k(te_pred_batch[idx], k=len(label_pos), sorted=True)
@@ -176,7 +172,7 @@ def validate_model(te_x, te_y, model, f_dict, r_dict, ulabels_te_dict, tr_labels
         try:
             label_pos_tools = [r_dict[str(item)] for item in label_pos if item not in [0, "0"]]
             pred_label_pos_tools = [r_dict[str(item)] for item in topk_pred if item not in [0, "0"]]
-        except:
+        except Exception as e:
             label_pos_tools = [r_dict[item] for item in label_pos if item not in [0, "0"]]
             pred_label_pos_tools = [r_dict[item] for item in topk_pred if item not in [0, "0"]]
         intersection = list(set(label_pos_tools).intersection(set(pred_label_pos_tools)))
@@ -207,7 +203,7 @@ def validate_model(te_x, te_y, model, f_dict, r_dict, ulabels_te_dict, tr_labels
         try:
             low_label_pos_tools = [r_dict[str(item)] for item in low_label_pos if item not in [0, "0"]]
             low_pred_label_pos_tools = [r_dict[str(item)] for item in low_topk_pred if item not in [0, "0"]]
-        except:
+        except Exception as e:
             low_label_pos_tools = [r_dict[item] for item in low_label_pos if item not in [0, "0"]]
             low_pred_label_pos_tools = [r_dict[item] for item in low_topk_pred if item not in [0, "0"]]
 
@@ -254,7 +250,6 @@ def create_rnn_architecture(train_data, train_labels, test_data, test_labels, f_
     all_sel_tool_ids = list()
     epo_te_precision = list()
     epo_low_te_precision = list()
-    c_weights = tf.convert_to_tensor(list(c_wts.values()), dtype=tf.float32)
 
     te_lowest_t_ids = utils.get_low_freq_te_samples(test_data, test_labels, tr_t_freq)
     utils.write_file("log/data/te_lowest_t_ids.txt", ",".join([str(item) for item in te_lowest_t_ids]))
@@ -263,11 +258,8 @@ def create_rnn_architecture(train_data, train_labels, test_data, test_labels, f_
 
     sel_tools = list()
     for batch in range(n_train_batches):
-        
         print("Total train data size: ", train_data.shape, train_labels.shape)
-        
         x_train, y_train, sel_tools = sample_balanced_tr_y(train_data, train_labels, u_tr_y_labels_dict, batch_size, tr_t_freq, sel_tools)
-
         print("Batch train data size: ", x_train.shape, y_train.shape)
         all_sel_tool_ids.extend(sel_tools)
 
@@ -303,7 +295,6 @@ def create_rnn_architecture(train_data, train_labels, test_data, test_labels, f_
 
             tf.saved_model.save(model, tf_model_save)
             utils.save_model_file(tf_model_save_h5, model, r_dict, c_wts, compatible_tools, published_connections)
-    
     new_dict = dict()
     for k in u_tr_y_labels_dict:
         new_dict[str(k)] = ",".join([str(item) for item in u_tr_y_labels_dict[k]])
@@ -317,4 +308,4 @@ def create_rnn_architecture(train_data, train_labels, test_data, test_labels, f_
     utils.write_file("log/data/epo_te_precision.txt", ",".join([str(item) for item in epo_te_precision]))
     utils.write_file("log/data/all_sel_tool_ids.txt", ",".join([str(item) for item in all_sel_tool_ids]))
     utils.write_file("log/data/epo_low_te_precision.txt", ",".join([str(item) for item in epo_low_te_precision]))
-    utils.write_file("log/data/u_tr_y_labels_dict.txt", new_dict)  
+    utils.write_file("log/data/u_tr_y_labels_dict.txt", new_dict)

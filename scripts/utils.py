@@ -3,15 +3,6 @@ import numpy as np
 import json
 import h5py
 import pandas as pd
-import random
-import subprocess
-import tqdm
-from numpy.random import choice
-import matplotlib.pyplot as plt
-
-import tensorflow as tf
-from tensorflow.keras import backend
-
 
 
 def read_file(file_path):
@@ -46,7 +37,7 @@ def get_low_freq_te_samples(te_data, te_target, tr_freq_dict):
         tools_pos = np.where(te_labels > 0)[0]
         tools_pos = [str(int(item)) for item in tools_pos]
         intersection = list(set(tools_pos).intersection(set(lowest_t_ids)))
-        if len(intersection ) > 0:
+        if len(intersection) > 0:
             lowest_tool_te_ids.append(i)
             lowest_t_ids = [item for item in lowest_t_ids if item not in intersection]
     return lowest_tool_te_ids
@@ -136,7 +127,7 @@ def save_data_as_dict(f_dict, r_dict, inp, tar, save_path):
         size += len(inp_tar[item])
     print("Size saved file: ", size)
     write_file(save_path, inp_tar)
-    
+
 
 def read_train_test(datapath):
     file_obj = h5py.File(datapath, 'r')
