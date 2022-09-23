@@ -2,8 +2,6 @@
 Extract workflow paths from the tabular file containing
 input and output tools
 """
-
-import csv
 import random
 
 import utils
@@ -24,7 +22,6 @@ class ExtractWorkflowConnections:
         wf_frame = utils.remove_pipe(wf_path)
         tool_popu_frame = utils.remove_pipe(tool_popu_path)
         return wf_frame, tool_popu_frame
-
 
     def read_tabular_file(self, wf_dataframe, config):
         """
@@ -90,9 +87,10 @@ class ExtractWorkflowConnections:
         unique_paths = list(workflow_paths_dup.split("\n"))
         unique_paths = list(filter(None, unique_paths))
         random.shuffle(unique_paths)
+        print("unique_paths: {}".format(len(unique_paths)))
         no_dup_paths = list(set(unique_paths))
-
-        return unique_paths, standard_connections
+        print("no_dup_paths: {}".format(len(no_dup_paths)))
+        return no_dup_paths, standard_connections
 
     def __collect_standard_connections(self, row):
         published = row[8].strip()
