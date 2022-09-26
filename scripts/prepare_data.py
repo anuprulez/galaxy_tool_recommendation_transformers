@@ -34,7 +34,7 @@ class PrepareData:
         for item in raw_paths:
             split_items = item.split(",")
             for token in split_items:
-                if token is not "":
+                if token != "":
                     tokens.append(token)
         tokens = list(set(tokens))
         tokens = np.array(tokens)
@@ -324,4 +324,4 @@ class PrepareData:
         utils.write_file("log/data/all_paths.txt", all_paths)
         utils.write_file("log/data/class_weights.txt", class_weights)
 
-        return train_data, train_labels, test_data, test_labels, dictionary, rev_dict, class_weights, tr_tool_freq
+        return train_data, train_labels, test_data, test_labels, dictionary, rev_dict, class_weights, compatible_tools, tr_tool_freq
