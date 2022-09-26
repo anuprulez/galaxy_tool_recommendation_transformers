@@ -1,5 +1,4 @@
 import os
-import random
 import numpy as np
 
 import tensorflow as tf
@@ -37,39 +36,6 @@ def create_model(vocab_size, config):
     return Model(inputs=inputs, outputs=[outputs, weights])
 
 
-def get_u_labels(y_train):
-    last_tools = list()
-    ulabels_dict = dict()
-    for item in range(y_train.shape[0]):
-        arr_seq = y_train[item]
-        label_pos = np.where(arr_seq > 0)[0]
-        last_tool = str(int(arr_seq[label_pos[-1]]))
-        if last_tool not in ulabels_dict:
-            ulabels_dict[last_tool] = list()
-        ulabels_dict[last_tool].append(item)
-        last_tools.append(last_tool)
-    u_labels = list(set(last_tools))
-    random.shuffle(u_labels)
-    return u_labels, ulabels_dict
-
-
-def get_u_tr_path(x_tr):
-    tools = list()
-    tools_pos_dict = dict()
-    for i, item in enumerate(x_tr):
-        tool_pos = np.where(item > 0)[0]
-        tool_pos = item[tool_pos]
-        tools.extend(tool_pos)
-        for t in tool_pos:
-            if t not in tools_pos_dict:
-                tools_pos_dict[t] = list()
-            tools_pos_dict[t].append(i)
-    u_tools = list(set(tools))
-    for item in tools_pos_dict:
-        tools_pos_dict[item] = list(set(tools_pos_dict[item]))
-    return u_tools, tools_pos_dict
-
-
 def get_u_tr_labels(y_tr):
     labels = list()
     labels_pos_dict = dict()
@@ -84,58 +50,6 @@ def get_u_tr_labels(y_tr):
     for item in labels_pos_dict:
         labels_pos_dict[item] = list(set(labels_pos_dict[item]))
     return u_labels, labels_pos_dict
-
-
-def sample_balanced_te_y(x_seqs, y_labels, ulabels_tr_y_dict, b_size):
-    batch_y_tools = list(ulabels_tr_y_dict.keys())
-    random.shuffle(batch_y_tools)
-    label_tools = list()
-    rand_batch_indices = list()
-    sel_tools = list()
-    for l_tool in batch_y_tools:
-        seq_indices = ulabels_tr_y_dict[l_tool]
-        random.shuffle(seq_indices)
-        rand_s_index = np.random.randint(0, len(seq_indices), 1)[0]
-        rand_sample = seq_indices[rand_s_index]
-        sel_tools.append(l_tool)
-        if rand_sample not in rand_batch_indices:
-            rand_batch_indices.append(rand_sample)
-            label_tools.append(l_tool)
-        if len(rand_batch_indices) == b_size:
-            break
-    x_batch_train = x_seqs[rand_batch_indices]
-    y_batch_train = y_labels[rand_batch_indices]
-
-    unrolled_x = tf.convert_to_tensor(x_batch_train, dtype=tf.int64)
-    unrolled_y = tf.convert_to_tensor(y_batch_train, dtype=tf.int64)
-    return unrolled_x, unrolled_y, sel_tools
-
-
-def sample_balanced_tr_y(x_seqs, y_labels, ulabels_tr_y_dict, b_size, tr_t_freq, prev_sel_tools):
-    batch_y_tools = list(ulabels_tr_y_dict.keys())
-    random.shuffle(batch_y_tools)
-    label_tools = list()
-    rand_batch_indices = list()
-    sel_tools = list()
-
-    unselected_tools = [t for t in batch_y_tools if t not in prev_sel_tools]
-    rand_selected_tools = unselected_tools[:b_size]
-
-    for l_tool in rand_selected_tools:
-        seq_indices = ulabels_tr_y_dict[l_tool]
-        random.shuffle(seq_indices)
-        rand_s_index = np.random.randint(0, len(seq_indices), 1)[0]
-        rand_sample = seq_indices[rand_s_index]
-        sel_tools.append(l_tool)
-        rand_batch_indices.append(rand_sample)
-        label_tools.append(l_tool)
-
-    x_batch_train = x_seqs[rand_batch_indices]
-    y_batch_train = y_labels[rand_batch_indices]
-
-    unrolled_x = tf.convert_to_tensor(x_batch_train, dtype=tf.int64)
-    unrolled_y = tf.convert_to_tensor(y_batch_train, dtype=tf.int64)
-    return unrolled_x, unrolled_y, sel_tools
 
 
 def compute_loss(y_true, y_pred, class_weights=None):
@@ -159,7 +73,7 @@ def compute_topk_acc(y_true, y_pred, k):
 
 def validate_model(te_x, te_y, te_batch_size, model, f_dict, r_dict, ulabels_te_dict, tr_labels, lowest_t_ids):
     print("Total test data size: ", te_x.shape, te_y.shape)
-    te_x_batch, y_train_batch, _ = sample_balanced_te_y(te_x, te_y, ulabels_te_dict, te_batch_size)
+    te_x_batch, y_train_batch, _ = utils.sample_balanced_te_y(te_x, te_y, ulabels_te_dict, te_batch_size)
     print("Batch test data size: ", te_x_batch.shape, y_train_batch.shape)
     te_pred_batch, att_weights = model(te_x_batch, training=False)
     test_acc = tf.reduce_mean(compute_acc(y_train_batch, te_pred_batch))
@@ -262,7 +176,8 @@ def create_enc_transformer(train_data, train_labels, test_data, test_labels, f_d
     sel_tools = list()
     for batch in range(n_train_steps):
         print("Total train data size: ", train_data.shape, train_labels.shape)
-        x_train, y_train, sel_tools = sample_balanced_tr_y(train_data, train_labels, u_tr_y_labels_dict, tr_batch_size, tr_t_freq, sel_tools)
+        #x_train, y_train, sel_tools = sample_balanced_tr_y(train_data, train_labels, u_tr_y_labels_dict, tr_batch_size, tr_t_freq, sel_tools)
+        x_train, y_train, sel_tools = utils.sample_balanced_tr_y(train_data, train_labels, u_tr_y_labels_dict, tr_batch_size, tr_t_freq, sel_tools)
         print("Batch train data size: ", x_train.shape, y_train.shape)
         all_sel_tool_ids.extend(sel_tools)
         with tf.GradientTape() as model_tape:

@@ -2,7 +2,9 @@ import os
 import numpy as np
 import json
 import h5py
+import random
 import pandas as pd
+import tensorflow as tf
 
 
 def read_file(file_path):
@@ -134,6 +136,58 @@ def read_train_test(datapath):
     data_input = np.array(file_obj["input"])
     data_target = np.array(file_obj["target"])
     return data_input, data_target
+
+
+def sample_balanced_tr_y(x_seqs, y_labels, ulabels_tr_y_dict, b_size, tr_t_freq, prev_sel_tools):
+    batch_y_tools = list(ulabels_tr_y_dict.keys())
+    random.shuffle(batch_y_tools)
+    label_tools = list()
+    rand_batch_indices = list()
+    sel_tools = list()
+
+    unselected_tools = [t for t in batch_y_tools if t not in prev_sel_tools]
+    rand_selected_tools = unselected_tools[:b_size]
+
+    for l_tool in rand_selected_tools:
+        seq_indices = ulabels_tr_y_dict[l_tool]
+        random.shuffle(seq_indices)
+        rand_s_index = np.random.randint(0, len(seq_indices), 1)[0]
+        rand_sample = seq_indices[rand_s_index]
+        sel_tools.append(l_tool)
+        rand_batch_indices.append(rand_sample)
+        label_tools.append(l_tool)
+
+    x_batch_train = x_seqs[rand_batch_indices]
+    y_batch_train = y_labels[rand_batch_indices]
+
+    unrolled_x = tf.convert_to_tensor(x_batch_train, dtype=tf.int64)
+    unrolled_y = tf.convert_to_tensor(y_batch_train, dtype=tf.int64)
+    return unrolled_x, unrolled_y, sel_tools
+
+
+def sample_balanced_te_y(x_seqs, y_labels, ulabels_tr_y_dict, b_size):
+    batch_y_tools = list(ulabels_tr_y_dict.keys())
+    random.shuffle(batch_y_tools)
+    label_tools = list()
+    rand_batch_indices = list()
+    sel_tools = list()
+    for l_tool in batch_y_tools:
+        seq_indices = ulabels_tr_y_dict[l_tool]
+        random.shuffle(seq_indices)
+        rand_s_index = np.random.randint(0, len(seq_indices), 1)[0]
+        rand_sample = seq_indices[rand_s_index]
+        sel_tools.append(l_tool)
+        if rand_sample not in rand_batch_indices:
+            rand_batch_indices.append(rand_sample)
+            label_tools.append(l_tool)
+        if len(rand_batch_indices) == b_size:
+            break
+    x_batch_train = x_seqs[rand_batch_indices]
+    y_batch_train = y_labels[rand_batch_indices]
+
+    unrolled_x = tf.convert_to_tensor(x_batch_train, dtype=tf.int64)
+    unrolled_y = tf.convert_to_tensor(y_batch_train, dtype=tf.int64)
+    return unrolled_x, unrolled_y, sel_tools
 
 
 def get_lowest_tools(l_tool_freq, fraction=0.25):

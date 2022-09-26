@@ -99,7 +99,6 @@ if __name__ == "__main__":
         pub_conn = utils.read_file(base_path + "data/published_connections.txt")
         print("True size: ", train_data.shape, train_labels.shape, test_data.shape, test_labels.shape)
         print(len(r_dict), len(f_dict))
-
         print("Extracted size: ", train_data.shape, train_labels.shape, test_data.shape, test_labels.shape)
         if is_transformer == "true":
             transformer_encoder.create_enc_transformer(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
@@ -116,13 +115,11 @@ if __name__ == "__main__":
         print("Dividing data...")
         data = prepare_data.PrepareData(maximum_path_length, te_share)
         train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, tr_tool_freq = data.get_data_labels_matrices(workflow_paths, usage_df, cutoff_date, pub_conn)
-
         print(train_data.shape, train_labels.shape, test_data.shape, test_labels.shape)
         if is_transformer == "true":
             transformer_encoder.create_enc_transformer(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
         else:
             create_rnn.create_rnn_architecture(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
-
     end_time = time.time()
     print()
     print("Program finished in %s seconds" % str(end_time - start_time))

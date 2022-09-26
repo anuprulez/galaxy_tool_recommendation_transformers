@@ -140,7 +140,7 @@ def compute_acc(y_true, y_pred):
 
 def validate_model(te_x, te_y, te_batch_size, model, f_dict, r_dict, ulabels_te_dict, tr_labels, lowest_t_ids):
     print("Total test data size: ", te_x.shape, te_y.shape)
-    te_x_batch, y_train_batch, _ = sample_balanced_te_y(te_x, te_y, ulabels_te_dict, te_batch_size)
+    te_x_batch, y_train_batch, _ = utils.sample_balanced_te_y(te_x, te_y, ulabels_te_dict, te_batch_size)
     print("Batch test data size: ", te_x_batch.shape, y_train_batch.shape)
     te_pred_batch = model([te_x_batch], training=False)
     test_acc = tf.reduce_mean(compute_acc(y_train_batch, te_pred_batch))
@@ -249,7 +249,8 @@ def create_rnn_architecture(train_data, train_labels, test_data, test_labels, f_
     sel_tools = list()
     for batch in range(n_train_steps):
         print("Total train data size: ", train_data.shape, train_labels.shape)
-        x_train, y_train, sel_tools = sample_balanced_tr_y(train_data, train_labels, u_tr_y_labels_dict, tr_batch_size, tr_t_freq, sel_tools)
+        #x_train, y_train, sel_tools = sample_balanced_tr_y(train_data, train_labels, u_tr_y_labels_dict, tr_batch_size, tr_t_freq, sel_tools)
+        x_train, y_train, sel_tools = utils.sample_balanced_tr_y(train_data, train_labels, u_tr_y_labels_dict, tr_batch_size, tr_t_freq, sel_tools)
         print("Batch train data size: ", x_train.shape, y_train.shape)
         all_sel_tool_ids.extend(sel_tools)
         with tf.GradientTape() as model_tape:
