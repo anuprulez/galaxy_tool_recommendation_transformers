@@ -45,6 +45,7 @@ if __name__ == "__main__":
     arg_parser.add_argument("-trlg", "--tr_logging_step", required=True, help="Train logging frequency")
     arg_parser.add_argument("-telg", "--te_logging_step", required=True, help="Test logging frequency")
     arg_parser.add_argument("-tebs", "--te_batch_size", required=True, help="Test batch size")
+    arg_parser.add_argument("-istrf", "--is_transformer", required=True, help="If transformer or rnn")
 
     # get argument values
     args = vars(arg_parser.parse_args())
@@ -67,6 +68,7 @@ if __name__ == "__main__":
     te_logging_step = int(args["te_logging_step"])
     tr_logging_step = int(args["tr_logging_step"])
     use_data = args["use_data"]
+    is_transformer = args["is_transformer"]
 
     config = {
         'cutoff_date': cutoff_date,
@@ -99,9 +101,10 @@ if __name__ == "__main__":
         print(len(r_dict), len(f_dict))
 
         print("Extracted size: ", train_data.shape, train_labels.shape, test_data.shape, test_labels.shape)
-        transformer_encoder.create_enc_transformer(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
-        #create_rnn.create_rnn_architecture(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
-
+        if is_transformer == "true":
+            transformer_encoder.create_enc_transformer(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
+        else:
+            create_rnn.create_rnn_architecture(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
     else:
         print("Preprocessing workflows...")
         # Extract and process workflows
@@ -109,15 +112,16 @@ if __name__ == "__main__":
         # Process raw workflow file
         wf_dataframe, usage_df = connections.process_raw_files(workflows_path, tool_usage_path, config)
         workflow_paths, pub_conn = connections.read_tabular_file(wf_dataframe, config)
-
         # Process the paths from workflows
         print("Dividing data...")
         data = prepare_data.PrepareData(maximum_path_length, te_share)
         train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, tr_tool_freq = data.get_data_labels_matrices(workflow_paths, usage_df, cutoff_date, pub_conn)
 
         print(train_data.shape, train_labels.shape, test_data.shape, test_labels.shape)
-        transformer_encoder.create_enc_transformer(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
-        #create_rnn.create_rnn_architecture(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
+        if is_transformer == "true":
+            transformer_encoder.create_enc_transformer(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
+        else:
+            create_rnn.create_rnn_architecture(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
 
     end_time = time.time()
     print()

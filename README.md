@@ -33,6 +33,15 @@ pip install tensorflow-gpu
 
 pip install pandas tqdm scikit-learn
 
+
+### Best model config
+- embed_dim = 128
+- num_heads = 4
+- ff_dim = 128
+- dropout = 0.1
+- batch_size = 128
+- learning_rate = 1e-3
+
 -------------
 
 Training script: https://github.com/anuprulez/galaxy_tool_recommendation/blob/master/train.sh

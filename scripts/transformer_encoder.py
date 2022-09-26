@@ -9,19 +9,6 @@ from tensorflow.keras.models import Model
 import utils
 import transformer_network
 
-
-#embed_dim = 128
-#num_heads = 4
-#ff_dim = 128
-#dropout = 0.1
-#n_train_batches = 50
-#batch_size = 128
-
-#test_logging_step = 10
-#train_logging_step = 100
-#te_batch_size = batch_size
-#learning_rate = 1e-3
-
 base_path = "log/"
 model_path = base_path + "saved_model/"
 
@@ -266,8 +253,6 @@ def create_enc_transformer(train_data, train_labels, test_data, test_labels, f_d
     epo_low_te_precision = list()
 
     te_lowest_t_ids = utils.get_low_freq_te_samples(test_data, test_labels, tr_t_freq)
-    #compatible_tools = utils.read_file(base_path + "data/compatible_tools.txt")
-    #published_connections = utils.read_file(base_path + "data/published_connections.txt")
     tr_log_step = config["tr_logging_step"]
     te_log_step = config["te_logging_step"]
     n_train_steps = config["n_train_iter"]
