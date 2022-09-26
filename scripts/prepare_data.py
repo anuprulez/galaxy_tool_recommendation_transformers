@@ -8,15 +8,13 @@ import os
 import collections
 import numpy as np
 import random
-import sys
+
+from sklearn.model_selection import train_test_split
 
 from scripts import predict_tool_usage
 from scripts import utils
 
 main_path = os.getcwd()
-start_token_name = "start_token"
-index_start_token = 2
-from sklearn.model_selection import train_test_split
 
 
 class PrepareData:
@@ -36,7 +34,7 @@ class PrepareData:
         for item in raw_paths:
             split_items = item.split(",")
             for token in split_items:
-                if token is not "":
+                if token != "":
                     tokens.append(token)
         tokens = list(set(tokens))
         tokens = np.array(tokens)
@@ -70,7 +68,6 @@ class PrepareData:
         dictionary, reverse_dictionary = self.assemble_dictionary(dictionary, old_data_dictionary)
         return dictionary, reverse_dictionary
 
-
     def decompose_paths(self, paths, dictionary):
         """
         Decompose the paths to variable length sub-paths keeping the first tool fixed
@@ -91,42 +88,32 @@ class PrepareData:
         print("Max length of tools: ", max_len)
         return sub_paths_pos
 
-
     def prepare_input_one_target_paths(self, dictionary, reverse_dictionary, paths):
         input_target_paths = dict()
         compatible_tools = dict()
         d_size = 0
         for i, item in enumerate(paths):
             input_tools = item.split(",")
-
             tool_seq = input_tools
             i_tools = ",".join(tool_seq[0:-1])
-            
             last_i_tool = i_tools.split(",")[-1]
-
             if last_i_tool not in compatible_tools:
                 compatible_tools[last_i_tool] = list()
-
             t_tools = tool_seq[-1]
             if t_tools not in compatible_tools[last_i_tool]:
                 compatible_tools[last_i_tool].append(t_tools)
-
-            if i_tools not in input_target_paths:
-                input_target_paths[i_tools] = list()
-
-            if t_tools not in input_target_paths[i_tools]:
-                input_target_paths[i_tools].append(t_tools)
-
             if i_tools not in input_target_paths:
                 input_target_paths[i_tools] = list()
             if t_tools not in input_target_paths[i_tools]:
                 input_target_paths[i_tools].append(t_tools)
-
+            if i_tools not in input_target_paths:
+                input_target_paths[i_tools] = list()
+            if t_tools not in input_target_paths[i_tools]:
+                input_target_paths[i_tools].append(t_tools)
         for item in input_target_paths:
             d_size += len(input_target_paths[item])
         print("Dataset size:", d_size)
         return input_target_paths, compatible_tools, d_size
-
 
     def prepare_input_target_paths(self, dictionary, reverse_dictionary, paths):
         input_target_paths = dict()
@@ -139,32 +126,24 @@ class PrepareData:
                 # uncomment this for one token target idea
                 tool_seq = input_tools[0: ctr+2]
                 i_tools = ",".join(tool_seq[0:-1])
-                
                 last_i_tool = i_tools.split(",")[-1]
-
                 if last_i_tool not in compatible_tools:
                     compatible_tools[last_i_tool] = list()
-
                 t_tools = tool_seq[-1]
                 if t_tools not in compatible_tools[last_i_tool]:
                     compatible_tools[last_i_tool].append(t_tools)
-
                 if i_tools not in input_target_paths:
                     input_target_paths[i_tools] = list()
                 if t_tools not in input_target_paths[i_tools]:
                     input_target_paths[i_tools].append(t_tools)
-
                 if i_tools not in input_target_paths:
                     input_target_paths[i_tools] = list()
                 if t_tools not in input_target_paths[i_tools]:
                     input_target_paths[i_tools].append(t_tools)
-
         for item in input_target_paths:
             d_size += len(input_target_paths[item])
         print("Dataset size:", d_size)
-
         return input_target_paths, compatible_tools, d_size
-
 
     def pad_paths_one_tool_target(self, multi_paths, compatible_tools, d_size, rev_dict, dictionary):
         d_size = len(multi_paths)
@@ -174,24 +153,18 @@ class PrepareData:
         for input_seq, target_seq_tools in list(multi_paths.items()):
             input_seq_tools = input_seq.split(",")
             last_i_tool = input_seq_tools[-1]
-            l_name = rev_dict[int(last_i_tool)]
             for id_pos, pos in enumerate(input_seq_tools):
                 input_mat[train_counter][id_pos] = int(pos)
-
             if last_i_tool in compatible_tools:
                 compatible_targets = compatible_tools[last_i_tool]
-            
             for k, t_label in enumerate(target_seq_tools):
                 target_mat[train_counter][int(t_label)] = 1
-
             for c_tool in compatible_targets:
                 target_mat[train_counter][int(c_tool)] = 1
-
             train_counter += 1
         print("Final data size: ", input_mat.shape, target_mat.shape)
         train_data, test_data, train_labels, test_labels = train_test_split(input_mat, target_mat, test_size=self.test_share, random_state=42)
         return train_data, train_labels, test_data, test_labels
-
 
     def split_test_train_data(self, multilabels_paths):
         """
@@ -208,7 +181,6 @@ class PrepareData:
             else:
                 train_dict[path] = multilabels_paths[path]
         return train_dict, test_dict
-
 
     def get_predicted_usage(self, data_dictionary, predicted_usage):
         """
@@ -229,7 +201,6 @@ class PrepareData:
                 continue
         return usage
 
-
     def assign_class_weights(self, n_classes, predicted_usage):
         """
         Compute class weights using usage
@@ -242,7 +213,6 @@ class PrepareData:
                 u_score += 1.0
             class_weights[key] = np.round(np.log(u_score), 6)
         return class_weights
-
 
     def get_train_tool_labels_freq(self, train_paths, reverse_dictionary):
         """
@@ -262,11 +232,9 @@ class PrepareData:
                     freq_dict_names[reverse_dictionary[int(tool_pos)]] = 0
                 last_tool_freq[tool_pos] += 1
                 freq_dict_names[reverse_dictionary[int(tool_pos)]] += 1
-        
         sorted_dict = dict(sorted(last_tool_freq.items(), key=lambda kv: kv[1], reverse=True))
         utils.write_file("log/data/train_tool_freq.txt", sorted_dict)
         return sorted_dict
-
 
     def get_train_last_tool_freq(self, train_paths, reverse_dictionary):
         """
@@ -285,11 +253,9 @@ class PrepareData:
                 freq_dict_names[reverse_dictionary[int(last_tool)]] = 0
             last_tool_freq[last_tool] += 1
             freq_dict_names[reverse_dictionary[int(last_tool)]] += 1
-        
         sorted_dict = dict(sorted(last_tool_freq.items(), key=lambda kv: kv[1], reverse=True))
         utils.write_file("log/data/train_last_tool_freq.txt", sorted_dict)
         return sorted_dict
-
 
     def get_toolid_samples(self, train_data, l_tool_freq):
         l_tool_tr_samples = dict()
@@ -301,7 +267,6 @@ class PrepareData:
                         l_tool_tr_samples[last_tool_id] = list()
                     l_tool_tr_samples[last_tool_id].append(index)
         return l_tool_tr_samples
-
 
     def get_data_labels_matrices(self, workflow_paths, usage_df, cutoff_date, standard_connections, old_data_dictionary={}):
         """
@@ -336,9 +301,8 @@ class PrepareData:
 
         print("Train data: ", train_data.shape)
         print("Test data: ", test_data.shape)
-        
+
         print("Estimating sample frequency...")
-        tr_tool_last_freq = self.get_train_last_tool_freq(train_data, rev_dict)
         tr_tool_freq = self.get_train_tool_labels_freq(train_labels, rev_dict)
 
         # Predict tools usage
@@ -360,4 +324,4 @@ class PrepareData:
         utils.write_file("log/data/all_paths.txt", all_paths)
         utils.write_file("log/data/class_weights.txt", class_weights)
 
-        return train_data, train_labels, test_data, test_labels, dictionary, rev_dict, class_weights, tr_tool_freq
+        return train_data, train_labels, test_data, test_labels, dictionary, rev_dict, class_weights, compatible_tools, tr_tool_freq

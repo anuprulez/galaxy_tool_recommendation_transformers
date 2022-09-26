@@ -1,33 +1,20 @@
-import os
-import time
-import random
-import numpy as np
-import subprocess
-import sys
-import json
-
 import tensorflow as tf
 from tensorflow.keras.layers import MultiHeadAttention, LayerNormalization, Dropout, Layer
-from tensorflow.keras.layers import Embedding, Input, GlobalAveragePooling1D, Dense
-from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras.layers import Dense, Embedding
+from tensorflow.keras.models import Sequential
 
 
 class TransformerBlock(Layer):
     def __init__(self, embed_dim, num_heads, ff_dim, rate=0.1):
         super(TransformerBlock, self).__init__()
-        self.att = MultiHeadAttention(num_heads=num_heads,
-            key_dim=embed_dim,
-            dropout=rate,
-        )
+        self.att = MultiHeadAttention(num_heads=num_heads, key_dim=embed_dim, dropout=rate)
         self.ffn = Sequential(
-            [Dense(ff_dim, activation="relu"),
-             Dense(embed_dim),]
+            [Dense(ff_dim, activation="relu"), Dense(embed_dim)]
         )
         self.layernorm1 = LayerNormalization(epsilon=1e-6)
         self.layernorm2 = LayerNormalization(epsilon=1e-6)
         self.dropout1 = Dropout(rate)
         self.dropout2 = Dropout(rate)
-
 
     def call(self, inputs, training):
         attn_output, attention_scores = self.att(inputs, inputs, inputs, return_attention_scores=True, training=training)
