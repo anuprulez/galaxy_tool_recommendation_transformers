@@ -1,3 +1,9 @@
+import os
+import time
+import subprocess
+import h5py
+import sys
+import random
 import numpy as np
 import json
 import warnings
@@ -8,6 +14,18 @@ import pandas as pd
 from matplotlib import pyplot as plt
 import matplotlib.gridspec as gridspec
 
+
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras.layers import Dense, GRU, Dropout, Embedding, SpatialDropout1D
+from tensorflow.keras.layers import MultiHeadAttention, LayerNormalization, Dropout, Layer
+
+from tensorflow.keras.layers import Embedding, Input, GlobalAveragePooling1D, Dense
+from tensorflow.keras.models import Model
+
+import transformer_network
+
+
 warnings.filterwarnings("ignore")
 
 font = {'family': 'serif', 'size': 18}
@@ -16,6 +34,12 @@ fig_size = (12, 12)
 plt.rc('font', **font)
 size_title = 28
 size_label = 24
+
+embed_dim = 128 # Embedding size for each token d_model
+num_heads = 4 # Number of attention heads
+ff_dim = 128 # Hidden layer size in feed forward network inside transformer # dff
+dropout = 0.1
+seq_len = 25
 
 
 base_path = "/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/tool_prediction_datasets/computed_results/aug_22 data/sample_runs/"
@@ -33,15 +57,18 @@ def collect_loss_prec_data(m_type):
     m_path = base_path + model_type + "/run"
     runs_indices = list()
     runs_te_loss = list()
+    model_numbers = [100, 200, 500, 1000, 1500, 2000, 2500, 3000, 3500]
     fig = plt.figure(figsize=fig_size)
     ## Transformer: For test loss
     for i in range(n_runs):
        x_path = "{}{}/".format(m_path, str(i+1))
        epo_te_batch_loss = read_file(x_path + "data/epo_te_batch_loss.txt").split(",")
-       epo_te_batch_loss = [np.round(float(item), 4) for item in epo_te_batch_loss]
+       epo_te_batch_loss = np.array([np.round(float(item), 4) for item in epo_te_batch_loss])
+       epo_te_batch_loss = epo_te_batch_loss[model_numbers]
 
-       run_range = 10 * np.arange(len(epo_te_batch_loss))
+       run_range = np.array(model_numbers) * 10
        runs_indices.extend(run_range)
+       print(run_range)
        runs_te_loss.extend(epo_te_batch_loss)
 
     df_runs_te_loss = pd.DataFrame(zip(runs_indices, runs_te_loss), columns=["indices", "loss"])
@@ -50,20 +77,22 @@ def collect_loss_prec_data(m_type):
     plt.xlabel("Training iteration")
     plt.ylabel("Test loss")
     plt.title("Test: binary crossentropy loss")
-    plt.savefig("plots/transformer_runs_x_pathte_loss.pdf", dpi=150)
+    plt.savefig("plots/transformer_runs_te_loss.pdf", dpi=150)
     
     ## Transformer: For test precision
     fig = plt.figure(figsize=fig_size)
     transformer_runs_te_prec = list()
     transformer_runs_te_prec_low = list()
+    #model_numbers = [100, 200, 500, 1000, 2000, 3000, 3500]
     for i in range(n_runs):
        x_path = "{}{}/".format(m_path, str(i+1))
        epo_te_batch_prec = read_file(x_path + "data/epo_te_precision.txt").split(",")
-       epo_te_batch_prec = [np.round(float(item), 4) for item in epo_te_batch_prec]
+       epo_te_batch_prec = np.array([np.round(float(item), 4) for item in epo_te_batch_prec])
+       epo_te_batch_prec = epo_te_batch_prec[model_numbers]
        transformer_runs_te_prec.extend(epo_te_batch_prec)
-       epo_low_te_precision = read_file(x_path + "data/epo_low_te_precision.txt").split(",")
-       epo_low_te_precision = [np.round(float(item), 4) for item in epo_low_te_precision]
-       transformer_runs_te_prec_low.extend(epo_low_te_precision)
+       #epo_low_te_precision = read_file(x_path + "data/epo_low_te_precision.txt").split(",")
+       #epo_low_te_precision = [np.round(float(item), 4) for item in epo_low_te_precision]
+       #transformer_run3500s_te_prec_low.extend(epo_low_te_precision)
 
     ## RNN: For test precision
     rnn_runs_te_prec = list()
@@ -72,19 +101,24 @@ def collect_loss_prec_data(m_type):
     for i in range(n_runs):
        x_path = "{}{}/".format(m_path, str(i+1))
        rnn_te_batch_prec = read_file(x_path + "data/epo_te_precision.txt").split(",")
-       rnn_te_batch_prec = [np.round(float(item), 4) for item in rnn_te_batch_prec]
+       rnn_te_batch_prec = np.array([np.round(float(item), 4) for item in rnn_te_batch_prec])
+       rnn_te_batch_prec = rnn_te_batch_prec[model_numbers]
        rnn_runs_te_prec.extend(rnn_te_batch_prec)
-       rnn_low_te_precision = read_file(x_path + "data/epo_low_te_precision.txt").split(",")
-       rnn_low_te_precision = [np.round(float(item), 4) for item in rnn_low_te_precision]
-       rnn_runs_te_prec_low.extend(rnn_low_te_precision)
 
-    df_tr_rnn_runs_te_prec = pd.DataFrame(zip(runs_indices, transformer_runs_te_prec, transformer_runs_te_prec_low, rnn_runs_te_prec, rnn_runs_te_prec_low), columns=["indices", "tran_prec", "tran_low_prec", "rnn_prec", "rnn_low_prec"])
+       #rnn_low_te_precision = read_file(x_path + "data/epo_low_te_precision.txt").split(",")
+       #rnn_low_te_precision = [np.round(float(item), 4) for item in rnn_low_te_precision]
+       #rnn_runs_te_prec_low.extend(rnn_low_te_precision)
+
+    #df_tr_rnn_runs_te_prec = pd.DataFrame(zip(runs_indices, transformer_runs_te_prec, transformer_runs_te_prec_low, rnn_runs_te_prec, rnn_runs_te_prec_low), columns=["indices", "tran_prec", "tran_low_prec", "rnn_prec", "rnn_low_prec"])
+
+    df_tr_rnn_runs_te_prec = pd.DataFrame(zip(runs_indices, transformer_runs_te_prec, rnn_runs_te_prec), columns=["indices", "tran_prec", "rnn_prec"])
+    print(df_tr_rnn_runs_te_prec)
 
     print(df_tr_rnn_runs_te_prec)
     sns.lineplot(data=df_tr_rnn_runs_te_prec, x="indices", y="tran_prec", label="Transformer: test tools", linestyle="-", color="green")
-    sns.lineplot(data=df_tr_rnn_runs_te_prec, x="indices", y="tran_low_prec", label="Transformer: lowest 25% test tools", color="green", linestyle=":")
+    #sns.lineplot(data=df_tr_rnn_runs_te_prec, x="indices", y="tran_low_prec", label="Transformer: lowest 25% test tools", color="green", linestyle=":")
     sns.lineplot(data=df_tr_rnn_runs_te_prec, x="indices", y="rnn_prec", label="RNN (GRU): test tools", color="red", linestyle="-")
-    sns.lineplot(data=df_tr_rnn_runs_te_prec, x="indices", y="rnn_low_prec", label="RNN (GRU): lowest 25% test tools", color="red", linestyle=":")
+    #sns.lineplot(data=df_tr_rnn_runs_te_prec, x="indices", y="rnn_low_prec", label="RNN (GRU): lowest 25% test tools", color="red", linestyle=":")
     plt.grid(True)
     plt.xlabel("Training iteration")
     plt.ylabel("Precision@k")
@@ -94,7 +128,117 @@ def collect_loss_prec_data(m_type):
 
 collect_loss_prec_data(["transformer", "rnn"])
 
+##################### Model usage time ###############################
 
+def read_h5_model(run, m_type, m_num):
+    path_test_data = base_path + m_type + "/run" + str(run) + "/saved_data/test.h5"
+    #print(path_test_data)
+
+    '''test_file = h5py.File(path_test_data, 'r')
+    test_input = np.array(test_file["input"])
+    test_target = np.array(test_file["target"])'''
+
+    model_path_h5 = base_path + m_type + "/run" + str(run) + "/saved_model/" + str(m_num) + "/tf_model_h5/"
+    print(model_path_h5)
+    h5_path = model_path_h5 + "model.h5"
+    model_h5 = h5py.File(h5_path, 'r')
+    #seq_len = 25
+    r_dict = json.loads(model_h5["reverse_dict"][()].decode("utf-8"))
+    #print(r_dict)
+    m_load_s_time = time.time()
+    if m_type == "transformer":
+        tf_loaded_model = create_transformer_model(seq_len, len(r_dict) + 1)
+    else:
+        tf_loaded_model = create_rnn_model(seq_len, len(r_dict) + 1)
+    tf_loaded_model.load_weights(h5_path)
+    m_load_e_time = time.time()
+    model_loading_time = m_load_e_time - m_load_s_time
+
+    f_dict = dict((v, k) for k, v in r_dict.items())
+    c_weights = json.loads(model_h5["class_weights"][()].decode("utf-8"))
+    c_tools = json.loads(model_h5["compatible_tools"][()].decode("utf-8"))
+    s_conn = json.loads(model_h5["standard_connections"][()].decode("utf-8"))
+
+    model_h5.close()
+    return tf_loaded_model, f_dict, r_dict, c_weights, c_tools, s_conn, model_loading_time
+
+
+def create_rnn_model(seq_len, vocab_size):
+
+    seq_inputs = tf.keras.Input(batch_shape=(None, seq_len))
+    gen_embedding = tf.keras.layers.Embedding(vocab_size, embed_dim, mask_zero=True)
+    in_gru = tf.keras.layers.GRU(ff_dim, return_sequences=True, return_state=False)
+    out_gru = tf.keras.layers.GRU(ff_dim, return_sequences=False, return_state=True)
+    enc_fc = tf.keras.layers.Dense(vocab_size, activation='sigmoid', kernel_regularizer="l2")
+    embed = gen_embedding(seq_inputs)
+    embed = tf.keras.layers.Dropout(dropout)(embed)
+    gru_output = in_gru(embed)
+    gru_output = tf.keras.layers.Dropout(dropout)(gru_output)
+    gru_output, hidden_state = out_gru(gru_output)
+    gru_output = tf.keras.layers.Dropout(dropout)(gru_output)
+    fc_output = enc_fc(gru_output)
+
+    return Model(inputs=[seq_inputs], outputs=[fc_output])
+
+
+def create_transformer_model(maxlen, vocab_size):
+    inputs = Input(shape=(maxlen,))
+    embedding_layer = transformer_network.TokenAndPositionEmbedding(maxlen, vocab_size, embed_dim)
+    x = embedding_layer(inputs)
+    transformer_block = transformer_network.TransformerBlock(embed_dim, num_heads, ff_dim)
+    x, weights = transformer_block(x)
+    x = GlobalAveragePooling1D()(x)
+    x = Dropout(dropout)(x)
+    x = Dense(ff_dim, activation="relu")(x)
+    x = Dropout(dropout)(x)
+    outputs = Dense(vocab_size, activation="sigmoid")(x)
+    return Model(inputs=inputs, outputs=[outputs, weights])
+
+
+def predict_seq():
+    model_types = ["transformer", "rnn"]
+    model_numbers = ["1000", "2000", "5000", "10000"]
+    input_seq_lengths = [1, 5, 10, 15, 20]
+    top_k = [1, 5, 10, 15, 20]
+    transformer_model_num = list()
+    rnn_model_num = list()
+    transformer_load_time = list()
+    rnn_load_time = list()
+    for m_type in model_types:
+        for run in range(n_runs):
+            for m_num in model_numbers:
+                tf_loaded_model, f_dict, r_dict, class_weights, compatible_tools, published_connections, model_loading_time = read_h5_model(run+1, m_type, m_num)
+                print("Run: {}, model: {}, model number: {}, loading time: {} seconds".format(run+1, m_type, m_num, model_loading_time))
+                print()
+                if m_type == "transformer":
+                   transformer_load_time.append(model_loading_time)
+                else:
+                   rnn_load_time.append(model_loading_time)
+            if m_type == "transformer":
+                transformer_model_num.extend(model_numbers)
+            else:
+                rnn_model_num.extend(model_numbers)
+            print("Model number ends")
+        print("Run ends")
+
+    print(transformer_load_time, len(transformer_load_time))
+    print()
+    print(rnn_load_time, len(rnn_load_time))
+    
+    df_tran_rnn_model_load_time = pd.DataFrame(zip(rnn_model_num, transformer_load_time, rnn_load_time), columns=["model_nums", "tran_load_time", "rnn_load_time"])
+    fig = plt.figure(figsize=fig_size)
+    sns.lineplot(data=df_tran_rnn_model_load_time, x="model_nums", y="tran_load_time", label="Transformer: model load time", linestyle="-", color="green")
+    sns.lineplot(data=df_tran_rnn_model_load_time, x="model_nums", y="rnn_load_time", label="RNN (GRU): model load time", color="red", linestyle="-")
+    plt.grid(True)
+    plt.xlabel("Training step")
+    plt.ylabel("Model load time (seconds)")
+    plt.title("Transformer vs RNN (GRU) model loading time")
+    plt.savefig("plots/transformer_rnn_runs_model_load_time.pdf", dpi=150)
+
+
+
+
+predict_seq()      
 
 
 '''
