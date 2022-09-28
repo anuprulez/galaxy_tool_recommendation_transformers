@@ -18,8 +18,8 @@ sys.path.append(os.getcwd())
 from scripts import extract_workflow_connections
 from scripts import prepare_data
 from scripts import utils
-import transformer_encoder
-import create_rnn
+import train_transformer
+import train_rnn
 
 
 if __name__ == "__main__":
@@ -83,7 +83,8 @@ if __name__ == "__main__":
         'te_logging_step': te_logging_step,
         'tr_logging_step': tr_logging_step,
         'tr_batch_size': tr_batch_size,
-        'te_batch_size': te_batch_size
+        'te_batch_size': te_batch_size,
+        'is_transformer': is_transformer
     }
 
     if use_data == "true":
@@ -101,9 +102,9 @@ if __name__ == "__main__":
         print(len(r_dict), len(f_dict))
         print("Extracted size: ", train_data.shape, train_labels.shape, test_data.shape, test_labels.shape)
         if is_transformer == "true":
-            transformer_encoder.create_enc_transformer(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
+            train_transformer.create_enc_transformer(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
         else:
-            create_rnn.create_rnn_architecture(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
+            train_rnn.create_rnn_architecture(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
     else:
         print("Preprocessing workflows...")
         # Extract and process workflows
@@ -117,9 +118,9 @@ if __name__ == "__main__":
         train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, tr_tool_freq = data.get_data_labels_matrices(workflow_paths, usage_df, cutoff_date, pub_conn)
         print(train_data.shape, train_labels.shape, test_data.shape, test_labels.shape)
         if is_transformer == "true":
-            transformer_encoder.create_enc_transformer(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
+            train_transformer.create_enc_transformer(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
         else:
-            create_rnn.create_rnn_architecture(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
+            train_rnn.create_rnn_architecture(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
     end_time = time.time()
     print()
     print("Program finished in %s seconds" % str(end_time - start_time))

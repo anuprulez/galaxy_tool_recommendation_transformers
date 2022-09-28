@@ -7,6 +7,11 @@ import pandas as pd
 import tensorflow as tf
 
 
+binary_ce = tf.keras.losses.BinaryCrossentropy()
+binary_acc = tf.keras.metrics.BinaryAccuracy()
+categorical_ce = tf.keras.metrics.CategoricalCrossentropy(from_logits=True)
+
+
 def read_file(file_path):
     """
     Read a file
@@ -188,6 +193,113 @@ def sample_balanced_te_y(x_seqs, y_labels, ulabels_tr_y_dict, b_size):
     unrolled_x = tf.convert_to_tensor(x_batch_train, dtype=tf.int64)
     unrolled_y = tf.convert_to_tensor(y_batch_train, dtype=tf.int64)
     return unrolled_x, unrolled_y, sel_tools
+
+
+def get_u_tr_labels(y_tr):
+    labels = list()
+    labels_pos_dict = dict()
+    for i, item in enumerate(y_tr):
+        label_pos = np.where(item > 0)[0]
+        labels.extend(label_pos)
+        for label in label_pos:
+            if label not in labels_pos_dict:
+                labels_pos_dict[label] = list()
+            labels_pos_dict[label].append(i)
+    u_labels = list(set(labels))
+    for item in labels_pos_dict:
+        labels_pos_dict[item] = list(set(labels_pos_dict[item]))
+    return u_labels, labels_pos_dict
+
+
+def compute_loss(y_true, y_pred, class_weights=None):
+    y_true = tf.cast(y_true, dtype=tf.float32)
+    loss = binary_ce(y_true, y_pred)
+    categorical_loss = categorical_ce(y_true, y_pred)
+
+    if class_weights is None:
+        return tf.reduce_mean(loss), categorical_loss
+    return tf.tensordot(loss, class_weights, axes=1), categorical_loss
+
+
+def compute_acc(y_true, y_pred):
+    return binary_acc(y_true, y_pred)
+
+
+def validate_model(te_x, te_y, te_batch_size, model, f_dict, r_dict, ulabels_te_dict, tr_labels, lowest_t_ids, is_transformer):
+    print("Total test data size: ", te_x.shape, te_y.shape)
+    te_x_batch, y_train_batch, _ = sample_balanced_te_y(te_x, te_y, ulabels_te_dict, te_batch_size)
+    print("Batch test data size: ", te_x_batch.shape, y_train_batch.shape)
+    if is_transformer == "true":
+        te_pred_batch, _ = model(te_x_batch, training=False)
+    else:
+        te_pred_batch = model(te_x_batch, training=False)
+    test_acc = tf.reduce_mean(compute_acc(y_train_batch, te_pred_batch))
+    test_err, test_categorical_loss = compute_loss(y_train_batch, te_pred_batch)
+    te_pre_precision = list()
+    for idx in range(te_pred_batch.shape[0]):
+        label_pos = np.where(y_train_batch[idx] > 0)[0]
+        # verify only on those tools are present in labels in training
+        label_pos = list(set(tr_labels).intersection(set(label_pos)))
+        topk_pred = tf.math.top_k(te_pred_batch[idx], k=len(label_pos), sorted=True)
+        topk_pred = topk_pred.indices.numpy()
+        try:
+            label_pos_tools = [r_dict[str(item)] for item in label_pos if item not in [0, "0"]]
+            pred_label_pos_tools = [r_dict[str(item)] for item in topk_pred if item not in [0, "0"]]
+        except Exception as e:
+            label_pos_tools = [r_dict[item] for item in label_pos if item not in [0, "0"]]
+            pred_label_pote_batch_sizes_tools = [r_dict[item] for item in topk_pred if item not in [0, "0"]]
+        intersection = list(set(label_pos_tools).intersection(set(pred_label_pos_tools)))
+        if len(topk_pred) > 0:
+            pred_precision = float(len(intersection)) / len(topk_pred)
+            te_pre_precision.append(pred_precision)
+            print("True labels: {}".format(label_pos_tools))
+            print()
+            print("Predicted labels: {}, Precision: {}".format(pred_label_pos_tools, pred_precision))
+            print("-----------------")
+            print()
+
+        if idx == te_batch_size - 1:
+            break
+
+    print("Test lowest ids", len(lowest_t_ids))
+    low_te_data = te_x[lowest_t_ids]
+    low_te_labels = te_y[lowest_t_ids]
+    if is_transformer == "true":
+        low_te_pred_batch, _ = model(low_te_data, training=False)
+    else:
+        low_te_pred_batch = model(low_te_data, training=False)
+    low_test_err, low_test_categorical_loss = compute_loss(low_te_labels, low_te_pred_batch)
+
+    low_te_precision = list()
+    for idx in range(low_te_pred_batch.shape[0]):
+        low_label_pos = np.where(low_te_labels[idx] > 0)[0]
+        low_label_pos = list(set(tr_labels).intersection(set(low_label_pos)))
+        low_topk_pred = tf.math.top_k(low_te_pred_batch[idx], k=len(low_label_pos), sorted=True)
+        low_topk_pred = low_topk_pred.indices.numpy()
+        try:
+            low_label_pos_tools = [r_dict[str(item)] for item in low_label_pos if item not in [0, "0"]]
+            low_pred_label_pos_tools = [r_dict[str(item)] for item in low_topk_pred if item not in [0, "0"]]
+        except Exception as e:
+            low_label_pos_tools = [r_dict[item] for item in low_label_pos if item not in [0, "0"]]
+            low_pred_label_pos_tools = [r_dict[item] for item in low_topk_pred if item not in [0, "0"]]
+
+        low_intersection = list(set(low_label_pos_tools).intersection(set(low_pred_label_pos_tools)))
+        if len(low_label_pos) > 0:
+            low_pred_precision = float(len(low_intersection)) / len(low_label_pos)
+            low_te_precision.append(low_pred_precision)
+            print("Low: True labels: {}".format(low_label_pos_tools))
+            print()
+            print("Low: Predicted labels: {}, Precision: {}".format(low_pred_label_pos_tools, low_pred_precision))
+            print("-----------------")
+            print()
+
+    print("Test binary errte_batch_sizeor: {}, test categorical loss: {}, test categorical accuracy: {}".format(test_err.numpy(), test_categorical_loss.numpy(), test_acc.numpy()))
+    print("Test prediction precision: {}".format(np.mean(te_pre_precision)))
+    print("Low test binary error: {}".format(low_test_err.numpy()))
+    print("Low test prediction precision: {}".format(np.mean(low_te_precision)))
+
+    print("Test finished")
+    return test_err.numpy(), test_acc.numpy(), test_categorical_loss.numpy(), np.mean(te_pre_precision), np.mean(low_te_precision)
 
 
 def get_lowest_tools(l_tool_freq, fraction=0.25):
