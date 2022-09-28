@@ -57,7 +57,7 @@ def collect_loss_prec_data(m_type):
     m_path = base_path + model_type + "/run"
     runs_indices = list()
     runs_te_loss = list()
-    model_numbers = [100, 200, 500, 1000, 1500, 2000, 2500, 3000, 3500]
+    model_numbers = [1, 100, 200, 500, 1000, 1500, 2000, 2500, 3000, 3500]
     fig = plt.figure(figsize=fig_size)
     ## Transformer: For test loss
     for i in range(n_runs):
@@ -126,12 +126,10 @@ def collect_loss_prec_data(m_type):
     plt.savefig("plots/transformer_rnn_runs_te_prec.pdf", dpi=150)
 
 
-collect_loss_prec_data(["transformer", "rnn"])
-
-##################### Model usage time ###############################
+##################### Model vs load time ###############################
 
 def read_h5_model(run, m_type, m_num):
-    path_test_data = base_path + m_type + "/run" + str(run) + "/saved_data/test.h5"
+    #path_test_data = base_path + m_type + "/run" + str(run) + "/saved_data/test.h5"
     #print(path_test_data)
 
     '''test_file = h5py.File(path_test_data, 'r')
@@ -195,9 +193,9 @@ def create_transformer_model(maxlen, vocab_size):
     return Model(inputs=inputs, outputs=[outputs, weights])
 
 
-def predict_seq():
+def plot_model_vs_load_time():
     model_types = ["transformer", "rnn"]
-    model_numbers = ["1000", "2000", "5000", "10000"]
+    model_numbers = ["1000", "2000", "3000", "4000", "5000", "10000", "20000", "25000", "30000", "35000"]
     input_seq_lengths = [1, 5, 10, 15, 20]
     top_k = [1, 5, 10, 15, 20]
     transformer_model_num = list()
@@ -236,9 +234,158 @@ def predict_seq():
     plt.savefig("plots/transformer_rnn_runs_model_load_time.pdf", dpi=150)
 
 
+def predict_tools_topk(tf_loaded_model, test_input, k, m_type):
+    test_batches = 10
+    batch_size = 100
+    batch_pred_time = list()
+    for j in range(test_batches):
+        te_x_batch = test_input[j * batch_size : j * batch_size + batch_size, :]
+
+        for i, inp in enumerate(te_x_batch):
+            t_ip = te_x_batch[i]
+            t_ip = tf.convert_to_tensor(t_ip, dtype=tf.int64)
+            t_ip = tf.reshape(t_ip, (25, 1))
+            pred_s_time = time.time()
+            if m_type == "transformer":
+                te_prediction, _ = tf_loaded_model(t_ip, training=False)
+            else:
+                te_prediction = tf_loaded_model(t_ip, training=False)
+            top_k = tf.math.top_k(te_prediction, k=k)
+            pred_e_time = time.time()
+            diff_time = (pred_e_time - pred_s_time)
+            batch_pred_time.append(diff_time)
+    print(k, len(batch_pred_time))
+    return np.mean(batch_pred_time)
 
 
-predict_seq()      
+def plot_usage_time_vs_topk():
+    
+    model_types = ["transformer", "rnn"]
+    m_num = 40000
+    top_k = [1, 5, 10, 15, 20]
+    transformer_seq_lengths = list()
+    rnn_seq_lengths = list()
+    transformer_pred_time = list()
+    rnn_pred_time = list()
+    for m_type in model_types:
+        for run in range(n_runs):
+            tf_loaded_model, f_dict, r_dict, class_weights, compatible_tools, published_connections, model_loading_time = read_h5_model(run+1, m_type, m_num)
+            print("Run: {}, model: {}, model number: {}, loading time: {} seconds".format(run + 1, m_type, m_num, model_loading_time))
+            path_test_data = base_path + m_type + "/run" + str(run+1) + "/saved_data/test.h5"
+            print("loading test data: {}".format(path_test_data))
+            test_file = h5py.File(path_test_data, 'r')
+            test_input = np.array(test_file["input"])
+            for tpk in top_k:
+                tool_prediction_time = predict_tools_topk(tf_loaded_model, test_input, tpk, m_type)
+                print("Run: {}, model: {}, model number: {}, loading time: {} seconds, tool pred time: {} seconds".format(run + 1, m_type, m_num, model_loading_time, tool_prediction_time))
+
+                print()
+                if m_type == "transformer":
+                    transformer_pred_time.append(tool_prediction_time)
+                else:
+                    rnn_pred_time.append(tool_prediction_time)
+            if m_type == "transformer":
+                transformer_seq_lengths.extend(input_seq_lengths)
+            else:
+                rnn_seq_lengths.extend(input_seq_lengths)
+            test_file.close()
+        print("Model number ends")
+    print("Run ends")
+
+    print(transformer_pred_time, len(transformer_pred_time))
+    print()
+    print(rnn_pred_time, len(rnn_pred_time))
+    m_numinput_seq_lengths
+    df_tran_rnn_model_pred_time = pd.DataFrame(zip(rnn_seq_lengths, transformer_pred_time, rnn_pred_time), columns=["pred_topk", "tran_pred_time", "rnn_pred_time"])
+    fig = plt.figure(figsize=fig_size)
+    sns.lineplot(data=df_tran_rnn_model_pred_time, x="pred_topk", y="tran_pred_time", label="Transformer: model pred time", linestyle="-", color="green")
+    sns.lineplot(data=df_tran_rnn_model_pred_time, x="pred_topk", y="rnn_pred_time", label="RNN (GRU): model pred time", color="red", linestyle="-")
+    plt.grid(True)
+    plt.xlabel("Prediction topk")
+    plt.ylabel("Model pred time (seconds)")
+    plt.title("Transformer vs RNN (GRU) model pred time")
+    plt.savefig("plots/transformer_rnn_runs_model_pred_time_seq_length.pdf", dpi=150)
+
+
+def predict_tools_seqlen(tf_loaded_model, test_input, k, m_type):
+    test_batches = 10
+    batch_size = 100
+    batch_pred_time = list()
+    for j in range(test_batches):
+        te_x_batch = test_input[j * batch_size : j * batch_size + batch_size, :]
+
+        for i, inp in enumerate(te_x_batch):
+            t_ip = te_x_batch[i]
+            if len(np.where(t_ip > 0)[0]) == k:
+                t_ip = tf.convert_to_tensor(t_ip, dtype=tf.int64)
+                t_ip = tf.reshape(t_ip, (25, 1))
+                pred_s_time = time.time()
+                if m_type == "transformer":
+                    te_prediction, _ = tf_loaded_model(t_ip, training=False)
+                else:
+                    te_prediction = tf_loaded_model(t_ip, training=False)
+                top_k = tf.math.top_k(te_prediction, k=k)
+                pred_e_time = time.time()
+                diff_time = (pred_e_time - pred_s_time)
+                batch_pred_time.append(diff_time)
+    print(k, len(batch_pred_time))
+    return np.mean(batch_pred_time)
+
+
+def plot_usage_time_vs_seq_len():
+    
+    model_types = ["transformer", "rnn"]
+    m_num = 40000
+    input_seq_lengths = [1, 5, 10, 15, 20]
+    transformer_seq_lengths = list()
+    rnn_seq_lengths = list()
+    transformer_pred_time = list()
+    rnn_pred_time = list()
+    for m_type in model_types:
+        for run in range(n_runs):
+            tf_loaded_model, f_dict, r_dict, class_weights, compatible_tools, published_connections, model_loading_time = read_h5_model(run+1, m_type, m_num)
+            print("Run: {}, model: {}, model number: {}, loading time: {} seconds".format(run + 1, m_type, m_num, model_loading_time))
+            path_test_data = base_path + m_type + "/run" + str(run+1) + "/saved_data/test.h5"
+            print("loading test data: {}".format(path_test_data))
+            test_file = h5py.File(path_test_data, 'r')
+            test_input = np.array(test_file["input"])
+            for i_seq_len in input_seq_lengths:
+                tool_prediction_time = predict_tools_seqlen(tf_loaded_model, test_input, i_seq_len, m_type)
+                print("Run: {}, model: {}, model number: {}, loading time: {} seconds, tool pred time: {} seconds".format(run + 1, m_type, m_num, model_loading_time, tool_prediction_time))
+
+                print()
+                if m_type == "transformer":
+                    transformer_pred_time.append(tool_prediction_time)
+                else:
+                    rnn_pred_time.append(tool_prediction_time)
+            if m_type == "transformer":
+                transformer_seq_lengths.extend(input_seq_lengths)
+            else:
+                rnn_seq_lengths.extend(input_seq_lengths)
+            test_file.close()
+        print("Model number ends")
+    print("Run ends")
+
+    print(transformer_pred_time, len(transformer_pred_time))
+    print()
+    print(rnn_pred_time, len(rnn_pred_time))
+    m_num
+    df_tran_rnn_model_pred_time = pd.DataFrame(zip(rnn_seq_lengths, transformer_pred_time, rnn_pred_time), columns=["seq_lengths", "tran_pred_time", "rnn_pred_time"])
+    fig = plt.figure(figsize=fig_size)
+    sns.lineplot(data=df_tran_rnn_model_pred_time, x="seq_lengths", y="tran_pred_time", label="Transformer: model pred time", linestyle="-", color="green")
+    sns.lineplot(data=df_tran_rnn_model_pred_time, x="seq_lengths", y="rnn_pred_time", label="RNN (GRU): model pred time", color="red", linestyle="-")
+    plt.grid(True)
+    plt.xlabel("Tool sequences length")
+    plt.ylabel("Model pred time (seconds)")
+    plt.title("Transformer vs RNN (GRU) model pred time")
+    plt.savefig("plots/transformer_rnn_runs_model_pred_time_seq_length.pdf", dpi=150)
+############ Call methods ###########################
+
+#collect_loss_prec_data(["transformer", "rnn"])
+#plot_model_vs_load_time()
+plot_usage_time_vs_topk()
+plot_usage_time_vs_seq_len()
+ 
 
 
 '''

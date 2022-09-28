@@ -578,7 +578,7 @@ def predict_seq():
         pred_e_time = time.time()
         diff_time = (pred_e_time - pred_s_time) / float(batch_size)
         batch_pred_time.append(diff_time)
-        
+
         for i, (inp, tar) in enumerate(zip(te_x_batch, y_train_batch)):
 
             t_ip = te_x_batch[i]
