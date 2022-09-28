@@ -4,19 +4,17 @@
 
 Project name: Galaxy tool recommendation using Transformers
 
-Project home page: <<>>
+Project home page: https://github.com/anuprulez/galaxy_tool_recommendation_transformers
 
-Data: https://github.com/anuprulez/galaxy_tool_recommendation/tree/master/data
+Data: https://github.com/anuprulez/galaxy_tool_recommendation_transformers/tree/master/data/test_data
 
 Operating system(s): Linux
 
 Programming language: Python
 
-Scripts: https://github.com/anuprulez/galaxy_tool_recommendation/tree/master/scripts
+Scripts: https://github.com/anuprulez/galaxy_tool_recommendation_transformers/tree/master/scripts
 
 iPython notebook: <<>>
-
-Other requirements: <<>>
 
 Nvidia-GPU: conda install -c anaconda tensorflow-gpu  v:v2.4.1
 https://anaconda.org/anaconda/tensorflow-gpu
@@ -52,25 +50,13 @@ RRID: <<to add>>
 
 bioToolsID: <<to add>>
 
-## History of the work
-
-Initial work to create tool recommendation model is stored at https://github.com/anuprulez/similar_galaxy_workflow. This repository storing the history of work until October, 2019 will not be used in future. The current repository (https://github.com/anuprulez/galaxy_tool_recommendation) will be used for current and future developments.
-
-## Description of other branches in this repository
-- Tool recommender system in Galaxy using deep learning (Gated recurrent units neural network) (branch: [master](https://github.com/anuprulez/galaxy_tool_recommendation))
-- Tool recommender system in Galaxy using deep learning (Dense neural network) (branch: [dnn_wc](https://github.com/anuprulez/galaxy_tool_recommendation/tree/dnn_wc))
-- Tool recommender system in Galaxy using deep learning (Convolutional neural network) (branch: [cnn_wc](https://github.com/anuprulez/galaxy_tool_recommendation/tree/cnn_wc))
-- Tool Recommender in Galaxy using stored tool sequences (branch: [statistical_model](https://github.com/anuprulez/galaxy_tool_recommendation/tree/statistical_model))
-- Tool recommender system in Galaxy using ExtraTrees classifier (branch: [sklearn_rf](https://github.com/anuprulez/galaxy_tool_recommendation/tree/sklearn_rf))
-- Tool recommender system in Galaxy using deep learning (Gated recurrent units neural network with no regularisation) (branch: [no_regularisation](https://github.com/anuprulez/galaxy_tool_recommendation/tree/no_regularisation))
-
 ## (To reproduce this work) How to create a sample tool recommendation model:
 
 **Note**: To reproduce this work after training on complete model, it is required to have a decent compute resource (with at least 10 GB RAM) and it takes > 24 hrs to create a trained model on complete set of workflows (~ 18,000). However, the following steps can be used to create a sample tool recommendation model on a subset of workflows:
 
 1. Install the dependencies by executing the following lines:
     *    `conda env create -f environment.yml`
-    *    `conda activate tool_prediction_gru_wc`
+    *    `conda activate tool_prediction_transformers`
 
 2. Execute `sh train.sh` (https://github.com/anuprulez/galaxy_tool_recommendation/blob/master/train.sh). It runs on a subset of workflows. Use file `data/worflow-connection-20-04.tsv` in the training script to train on complete set of workflows (It takes a long time to finish).
 
@@ -129,13 +115,13 @@ Open the workflow editor and choose any tool from the toolbox. Then, hover on th
 
 Information about contributors and how to contribute is present in `CONTRIBUTING.md` file.
 
-# Readings
-# https://keras.io/examples/nlp/text_classification_with_transformer/
-# https://hannibunny.github.io/mlbook/transformer/attention.html
-# https://arxiv.org/pdf/1905.09418.pdf
-# https://web.stanford.edu/class/archive/cs/cs224n/cs224n.1194/reports/custom/15794705.pdf
-# https://royalsocietypublishing.org/doi/10.1098/rsos.191517
-# https://arxiv.org/pdf/1909.06639.pdf
+### Readings
+- https://keras.io/examples/nlp/text_classification_with_transformer/
+- https://hannibunny.github.io/mlbook/transformer/attention.html
+- https://arxiv.org/pdf/1905.09418.pdf
+- https://web.stanford.edu/class/archive/cs/cs224n/cs224n.1194/reports/custom/15794705.pdf
+- https://royalsocietypublishing.org/doi/10.1098/rsos.191517
+- https://arxiv.org/pdf/1909.06639.pdf
 
 
 #Train data:  (414952, 25)
