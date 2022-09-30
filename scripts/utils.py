@@ -247,7 +247,7 @@ def validate_model(te_x, te_y, te_batch_size, model, f_dict, r_dict, ulabels_te_
             pred_label_pos_tools = [r_dict[str(item)] for item in topk_pred if item not in [0, "0"]]
         except Exception as e:
             label_pos_tools = [r_dict[item] for item in label_pos if item not in [0, "0"]]
-            pred_label_pote_batch_sizes_tools = [r_dict[item] for item in topk_pred if item not in [0, "0"]]
+            pred_label_pos_tools = [r_dict[item] for item in topk_pred if item not in [0, "0"]]
         intersection = list(set(label_pos_tools).intersection(set(pred_label_pos_tools)))
         if len(topk_pred) > 0:
             pred_precision = float(len(intersection)) / len(topk_pred)
