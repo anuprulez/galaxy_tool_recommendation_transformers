@@ -1,6 +1,7 @@
 import os
 import numpy as np
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 from tensorflow.keras.layers import Dense, Dropout, GlobalAveragePooling1D, Input
 from tensorflow.keras.models import Model

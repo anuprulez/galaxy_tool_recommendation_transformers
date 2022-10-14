@@ -38,7 +38,7 @@ font = {'family': 'serif', 'size': 8}
 plt.rc('font', **font)
 
 batch_size = 100
-test_batches = 0
+test_batches = 1
 n_topk = 1
 max_seq_len = 25
 
@@ -48,10 +48,10 @@ ff_dim = 128 # Hidden layer size in feed forward network inside transformer # df
 dropout = 0.1
 seq_len = 25
 
-predict_rnn = False
+predict_rnn = True
 
 if predict_rnn is True:
-    base_path = "log_19_09_22_GPU_RNN_full_data/" #"log_22_08_22_rnn/" #"log_08_08_22_rnn/"
+    base_path = "/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/tool_prediction_datasets/computed_results/aug_22 data/rnn/run2/" #"log_19_09_22_GPU_RNN_full_data/" #"log_22_08_22_rnn/" #"log_08_08_22_rnn/"
 else:
     base_path = "log_19_09_22_GPU_transformer_full_data/" #"log_12_09_22_GPU/" #"log_19_09_22_GPU_transformer_full_data/" 
 
@@ -501,9 +501,9 @@ def read_model():
 
 def predict_seq():
 
-    '''visualize_loss_acc()  
+    visualize_loss_acc()  
 
-    sys.exit()'''
+    #sys.exit()
 
     #plot_model_usage_time()
 
@@ -560,18 +560,18 @@ def predict_seq():
         y_train_batch = test_target[j * batch_size : j * batch_size + batch_size, :]'''
 
         #te_x_batch = tf.convert_to_tensor(te_x_batch, dtype=tf.int64)
-        te_x_mask = utils.create_padding_mask(te_x_batch)
+        #te_x_mask = utils.create_padding_mask(te_x_batch)
         #te_x_batch = tf.cast(te_x_batch, dtype=tf.int64, name="input_2")
         te_x_batch = tf.cast(te_x_batch, dtype=tf.float32, name="input_2")
         
-        print(te_x_batch, te_x_mask.shape)
+        #print(te_x_batch, te_x_mask.shape)
         #model([x_train, att_mask], training=True)
         pred_s_time = time.time()
         
         if predict_rnn is True:
             te_prediction = tf_loaded_model(te_x_batch, training=False)
         else:
-            te_x_mask = tf.cast(te_x_mask, dtype=tf.float32)
+            #te_x_mask = tf.cast(te_x_mask, dtype=tf.float32)
             #te_prediction, att_weights = tf_loaded_model([te_x_batch, te_x_mask], training=False)
             te_prediction, att_weights = tf_loaded_model(te_x_batch, training=False)
            
@@ -651,7 +651,7 @@ def predict_seq():
                     #error_label_tools.append(select_tools[i])
                     print("=========================")
                 print("--------------------------")
-                generated_attention(att_weights[i], i_names, f_dict, r_dict)
+                #generated_attention(att_weights[i], i_names, f_dict, r_dict)
                 #plot_attention_head_axes(att_weights)
                 print("Batch {} prediction finished ...".format(j+1))
 
