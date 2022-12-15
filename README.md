@@ -16,61 +16,38 @@ Scripts: https://github.com/anuprulez/galaxy_tool_recommendation_transformers/tr
 
 iPython notebook: <<>>
 
-
 Training script: https://github.com/anuprulez/galaxy_tool_recommendation_transformers/blob/master/train.sh
 
 License: MIT License
 
-RRID: <<to add>>
-
-bioToolsID: <<to add>>
-
 ## (To reproduce this work) How to create a sample tool recommendation model:
 
-**Note**: To reproduce this work after training on complete model, it is required to have a decent compute resource (with at least 20 GB RAM) and it takes > 24 hrs to create a trained model on complete set of workflows. However, the following steps can be used to create a sample tool recommendation model on a subset of workflows:
+**Note**: To reproduce this work after training on complete model, it is required to have a decent compute resource (with at least 10 GB RAM) and it takes > 24 hrs to create a trained model on complete set of workflows (~ 18,000). However, the following steps can be used to create a sample tool recommendation model on a subset of workflows:
 
 1. Install the dependencies by executing the following lines:
     *    `conda env create -f environment.yml`
     *    `conda activate tool_prediction_transformers`
 
-2. Execute `sh train.sh` (https://github.com/anuprulez/galaxy_tool_recommendation/blob/master/train.sh). It runs on a subset of workflows. Use file `data/worflow-connection-20-04.tsv` in the training script to train on complete set of workflows (It takes a long time to finish).
+2. Execute `sh train.sh` (https://github.com/anuprulez/galaxy_tool_recommendation_transformers/blob/master/train.sh). It runs on a subset of workflows.
 
-3. After successful finish (~2-3 minutes), a trained model is created at `data/<<file name>>.hdf5`.
-
-4. Put this trained model file at `ipython_script/data/<<file name>>.hdf5` and execute the ipython notebook.
-
-5. A model trained on all workflows is present at `ipython_script/data/tool_recommendation_model_20_05.hdf5` which can be used to predict tools using the IPython notebook `ipython_script/tool_recommendation_gru_wc.ipynb`
+3. After successful finish (~2-3 minutes), a trained model is created at `data/aug_22/<<file name>>.hdf5`.
 
 ## Data description:
 
-Execute data extraction script `extract_data.sh` to extract two tabular files - `tool-popularity-20-04.tsv` and `worflow-connection-20-04.tsv`. This script should be executed on a Galaxy instance's database (ideally should be executed by a Galaxy admin). There are two methods in the script one each to generate two tabular files. The first file (`tool-popularity-20-04.tsv`) contains information about the usage of tools per month. The second file (`worflow-connection-20-04.tsv`) contains workflows present as the connections of tools. Save these tabular files. These tabular files are present under `/data` folder and can be used to run deep learning training by following steps.
+Execute data extraction script `extract_data.sh` to extract two tabular files - `tool_popularity_Aug_22.csv` and `wf-subset.csv`. This script should be executed on a Galaxy instance's database (ideally should be executed by a Galaxy admin). There are two methods in the script one each to generate two tabular files. The first file contains information about the usage of tools per month. The second file contains workflows present as the connections of tools. Save these tabular files. These tabular files are present under `/data/aug_22/` folder and can be used to run deep learning training by following steps.
 
 ### Description of all parameters mentioned in the training script:
 
-`python <main python script> -wf <path to workflow file> -tu <path to tool usage file> -om <path to the final model file> -cd <cutoff date> -pl <maximum length of tool path> -ep <number of training iterations> -oe <number of iterations to optimise hyperparamters> -me <maximum number of evaluation to optimise hyperparameters> -ts <fraction of test data> -bs <range of batch sizes> -ut <range of hidden units> -es <range of embedding sizes> -dt <range of dropout> -sd <range of spatial dropout> -rd <range of recurrent dropout> -lr <range of learning rates> -cpus <number of CPUs>`
-
-   - `<main python script>`: This script is the entry point of the entire analysis. It is present at `scripts/main.py`.
-   
-   - `<path to workflow file>`: It is a path to a tabular file containing Galaxy workflows. E.g. `data/worflow-connection-20-04.tsv`.
-   
-   - `<path to tool popularity file>`: It is a path to a tabular file containing usage frequencies of Galaxy tools. E.g. `data/tool-popularity-20-04.tsv`.
-   
-   - `<path to trained model file>`: It is a path of the final trained model (`h5` file). E.g. `data/<<file name>>.hdf5`.
-   
-   - `<cutoff date>`: It is used to set the earliest date from which the usage frequencies of tools should be considered. The format of the date is YYYY-MM-DD. This date should be in the past. E.g. `2017-12-01`.
-
-   - `<maximum length of tool path>`: This takes an integer and specifies the maximum size of a tool sequence extracted from any workflow. Any tool sequence of length larger than this number is not included in the dataset for training. E.g. `25`.
+`python <main python script> -wf <path to workflow file> -tu <path to tool usage file> -om <path to the final H5 model file> -cd <cutoff date to exclude old workflows> -pl <maximum length of tool path> -ti <number of training iterations> -nhd <number of attention heads> -ed <embedding dimensions> -fd <feed forward dimensions> -dt <dropout> -lr <learning rate> -ts <test data percentage> -trbs <training batch size> -tebs <test batch size> -trlg <train logging step> -telg <test logging step> -ud <use preprocessed data> --is_transformer <to use transformer or RNN>`
 
 
 ### (To reproduce this work on complete set of workflows) Example command:
 
-   `python scripts/main.py -wf data/worflow-connection-20-04.tsv -tu data/tool-popularity-20-04.tsv -om data/tool_recommendation_model.hdf5 -cd '2017-12-01' -pl 25 -ep 10 -oe 5 -me 20 -ts 0.2 -bs '32,256' -ut '32,256' -es '32,256' -dt '0.0,0.5' -sd '0.0,0.5' -rd '0.0,0.5' -lr '0.00001,0.1' -cpus 4`
-
-Once the script finishes, g for view to become activ`H5` model file is created at the given location (`path to trained model file`).
+   `python scripts/main.py -wf data/aug_22/wf-subset.csv -tu data/aug_22/tool_popularity_Aug_22.csv -om data/aug_22/tool_recommendation_model.hdf5 -cd '2017-12-31' -pl 25 -ti 20 -nhd 4 -ed 128 -fd 128 -dt 0.1 -lr 0.001 -ts 0.2 -trbs 128 -tebs 128 -trlg 10 -telg 5 -ud false --is_transformer true`
 
 ## (For Galaxy admins) The following steps are only necessary for deploying on any Galaxy server:
 
-1. (Already done!) The latest model is uploaded at: https://github.com/galaxyproject/galaxy-test-data/blob/master/tool_recommendation_model.hdf5. Change this path only if there is a different model.
+1. (Already done!) The latest model is uploaded at: https://github.com/galaxyproject/galaxy-test-data/blob/master/tool_recommendation_model_v_0.2.hdf5. Change this path only if there is a different model.
 
 2. In the `galaxy.yml.sample` config file, make the following changes:
     - Enable and then set the property `enable_tool_recommendations` to `true`.
