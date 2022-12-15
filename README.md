@@ -16,33 +16,8 @@ Scripts: https://github.com/anuprulez/galaxy_tool_recommendation_transformers/tr
 
 iPython notebook: <<>>
 
-Nvidia-GPU: conda install -c anaconda tensorflow-gpu  v:v2.4.1
-https://anaconda.org/anaconda/tensorflow-gpu
 
-### GPU Conda env
-conda create --name tool_prediction_rnn_4 python=3.9
-conda install -c conda-forge cudatoolkit=11.2 cudnn=8.1.0
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/
-mkdir -p $CONDA_PREFIX/etc/conda/activate.d
-echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' > $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
-
-pip install --upgrade pip
-pip install tensorflow-gpu
-
-pip install pandas tqdm scikit-learn
-
-
-### Best model config
-- embed_dim = 128
-- num_heads = 4
-- ff_dim = 128
-- dropout = 0.1
-- batch_size = 128
-- learning_rate = 1e-3
-
--------------
-
-Training script: https://github.com/anuprulez/galaxy_tool_recommendation/blob/master/train.sh
+Training script: https://github.com/anuprulez/galaxy_tool_recommendation_transformers/blob/master/train.sh
 
 License: MIT License
 
@@ -52,7 +27,7 @@ bioToolsID: <<to add>>
 
 ## (To reproduce this work) How to create a sample tool recommendation model:
 
-**Note**: To reproduce this work after training on complete model, it is required to have a decent compute resource (with at least 10 GB RAM) and it takes > 24 hrs to create a trained model on complete set of workflows (~ 18,000). However, the following steps can be used to create a sample tool recommendation model on a subset of workflows:
+**Note**: To reproduce this work after training on complete model, it is required to have a decent compute resource (with at least 20 GB RAM) and it takes > 24 hrs to create a trained model on complete set of workflows. However, the following steps can be used to create a sample tool recommendation model on a subset of workflows:
 
 1. Install the dependencies by executing the following lines:
     *    `conda env create -f environment.yml`
@@ -114,15 +89,3 @@ Open the workflow editor and choose any tool from the toolbox. Then, hover on th
 ## For contributors:
 
 Information about contributors and how to contribute is present in `CONTRIBUTING.md` file.
-
-### Readings
-- https://keras.io/examples/nlp/text_classification_with_transformer/
-- https://hannibunny.github.io/mlbook/transformer/attention.html
-- https://arxiv.org/pdf/1905.09418.pdf
-- https://web.stanford.edu/class/archive/cs/cs224n/cs224n.1194/reports/custom/15794705.pdf
-- https://royalsocietypublishing.org/doi/10.1098/rsos.191517
-- https://arxiv.org/pdf/1909.06639.pdf
-
-
-#Train data:  (414952, 25)
-#Test data:  (103739, 25)
