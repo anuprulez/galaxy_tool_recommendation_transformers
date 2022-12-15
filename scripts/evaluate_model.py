@@ -51,7 +51,8 @@ seq_len = 25
 predict_rnn = False
 
 if predict_rnn is True:
-    base_path = "log_19_09_22_GPU_RNN_full_data/" #"log_22_08_22_rnn/" #"log_08_08_22_rnn/"
+    base_path = "log_19_09_22_GPU_RNN_full_data/"
+    #"/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/tool_prediction_datasets/computed_results/aug_22 data/rnn/run2/" #"log_19_09_22_GPU_RNN_full_data/" #"log_22_08_22_rnn/" #"log_08_08_22_rnn/"
 else:
     base_path = "log_19_09_22_GPU_transformer_full_data/" #"log_12_09_22_GPU/" #"log_19_09_22_GPU_transformer_full_data/" 
 
@@ -501,9 +502,9 @@ def read_model():
 
 def predict_seq():
 
-    '''visualize_loss_acc()  
+    #visualize_loss_acc()  
 
-    sys.exit()'''
+    #sys.exit()
 
     #plot_model_usage_time()
 
@@ -560,18 +561,18 @@ def predict_seq():
         y_train_batch = test_target[j * batch_size : j * batch_size + batch_size, :]'''
 
         #te_x_batch = tf.convert_to_tensor(te_x_batch, dtype=tf.int64)
-        te_x_mask = utils.create_padding_mask(te_x_batch)
+        #te_x_mask = utils.create_padding_mask(te_x_batch)
         #te_x_batch = tf.cast(te_x_batch, dtype=tf.int64, name="input_2")
         te_x_batch = tf.cast(te_x_batch, dtype=tf.float32, name="input_2")
         
-        print(te_x_batch, te_x_mask.shape)
+        #print(te_x_batch, te_x_mask.shape)
         #model([x_train, att_mask], training=True)
         pred_s_time = time.time()
         
         if predict_rnn is True:
             te_prediction = tf_loaded_model(te_x_batch, training=False)
         else:
-            te_x_mask = tf.cast(te_x_mask, dtype=tf.float32)
+            #te_x_mask = tf.cast(te_x_mask, dtype=tf.float32)
             #te_prediction, att_weights = tf_loaded_model([te_x_batch, te_x_mask], training=False)
             te_prediction, att_weights = tf_loaded_model(te_x_batch, training=False)
            
@@ -651,17 +652,18 @@ def predict_seq():
                     #error_label_tools.append(select_tools[i])
                     print("=========================")
                 print("--------------------------")
-                generated_attention(att_weights[i], i_names, f_dict, r_dict)
+                #generated_attention(att_weights[i], i_names, f_dict, r_dict)
                 #plot_attention_head_axes(att_weights)
                 print("Batch {} prediction finished ...".format(j+1))
 
     te_lowest_t_ids = utils.read_file(base_path + "data/te_lowest_t_ids.txt")
     lowest_t_ids = [int(item) for item in te_lowest_t_ids.split(",")]
-    lowest_t_ids = lowest_t_ids[:5]
+    print(lowest_t_ids)
+    lowest_t_ids = [] #lowest_t_ids[:5]
     
     low_te_data = test_input[lowest_t_ids]
     low_te_labels = test_target[lowest_t_ids]
-    low_te_data_mask = utils.create_padding_mask(low_te_data)
+    #low_te_data_mask = utils.create_padding_mask(low_te_data)
     low_te_data = tf.cast(low_te_data, dtype=tf.float32)
     #print("Test lowest ids", low_te_data.shape, lowest_t_idslow_te_labels.shape)
     #low_te_pred_batch, low_att_weights = tf_loaded_model([low_te_data], training=False)
@@ -673,11 +675,11 @@ def predict_seq():
     if predict_rnn is True:
         bat_low_prediction = tf_loaded_model(low_te_data, training=False)
     else:
-        low_te_data_mask = tf.cast(low_te_data_mask, dtype=tf.float32)
+        #low_te_data_mask = tf.cast(low_te_data_mask, dtype=tf.float32)
         #bat_low_prediction, att_weights = tf_loaded_model([low_te_data, low_te_data_mask], training=False)
         bat_low_prediction, att_weights = tf_loaded_model(low_te_data, training=False)
     pred_e_time = time.time()
-    low_diff_pred_t = (pred_e_time - pred_s_time) / float(len(lowest_t_ids))
+    low_diff_pred_t = 0 #(pred_e_time - pred_s_time) / float(len(lowest_t_ids))
     low_te_pred_time.append(low_diff_pred_t)
     print("Time taken to predict tools: {} seconds".format(low_diff_pred_t))
 
@@ -758,9 +760,9 @@ def predict_seq():
     t_ip[2] = int(f_dict["hicexplorer_hicfindtads"])
     t_ip[3] = int(f_dict["hicexplorer_hicpca"])'''
 
-    t_ip[0, 0] = int(f_dict["cutadapt"]) #ivar_covid_aries_consensus
-    t_ip[0, 1] = int(f_dict["rna_star"])
-    #t_ip[0, 2] = int(f_dict["read2mut"])
+    t_ip[0, 0] = int(f_dict["mass_spectrometry_imaging_filtering"]) #ivar_covid_aries_consensus
+    t_ip[0, 1] = int(f_dict["cardinal_preprocessing"])
+    t_ip[0, 2] = int(f_dict["cardinal_segmentations"])
     #t_ip[0, 3] = int(f_dict["heinz"])
 
     #t_ip[4] = int(f_dict["prokka"])
@@ -769,7 +771,7 @@ def predict_seq():
     #t_ip[7] = int(f_dict["cat1"])
     #t_ip[8] = int(f_dict["anndata_manipulate"])
     # 'snpEff_build_gb', 'bwa_mem', 'samtools_view', snpeff_sars_cov_2
-    last_tool_name = "rna_star"
+    last_tool_name = "cardinal_segmentations"
     
     t_ip = tf.convert_to_tensor(t_ip, dtype=tf.int64)
     t_ip = tf.cast(t_ip, dtype=tf.float32)
@@ -778,11 +780,11 @@ def predict_seq():
     if predict_rnn is True:
         prediction = tf_loaded_model(t_ip, training=False)
     else:
-        t_ip_mask = utils.create_padding_mask(t_ip)
-        t_ip_mask = tf.cast(t_ip_mask, dtype=tf.float32)
+        #t_ip_mask = utils.create_padding_mask(t_ip)
+        #t_ip_mask = tf.cast(t_ip_mask, dtype=tf.float32)
         #prediction, att_weights = tf_loaded_model([t_ip, t_ip_mask], training=False)
         prediction, att_weights = tf_loaded_model(t_ip, training=False)
-        print(att_weights.shape)
+        print(prediction.shape, att_weights.shape)
     pred_e_time = time.time()
     print("Time taken to predict tools: {} seconds".format(pred_e_time - pred_s_time))
     prediction_cwts = tf.math.multiply(c_weights, prediction)
@@ -1039,7 +1041,7 @@ def plot_attention_head(in_tokens, out_tokens, attention):
 
   fig = plt.figure()
   ax = fig.add_subplot(111)
-  cax = ax.matshow(attention, interpolation='nearest')
+  cax = ax.matshow(attention, interpolation='nearest')ctb_chemfp_nxn_clustering
   fig.colorbar(cax)
 
   #ax = plt.gca()

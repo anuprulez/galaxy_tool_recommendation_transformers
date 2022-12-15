@@ -203,4 +203,3 @@ dependencies:
     - werkzeug==2.1.1
     - wrapt==1.14.0
     - zipp==3.8.0
-prefix: /home/anupkumar/anaconda3/envs/tool_prediction_gru_wc

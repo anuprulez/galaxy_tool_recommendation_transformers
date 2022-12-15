@@ -42,8 +42,8 @@ dropout = 0.1
 seq_len = 25
 
 
-base_path = "/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/tool_prediction_datasets/computed_results/aug_22 data/sample_runs/"
-n_runs = 3
+base_path = "/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/tool_prediction_datasets/computed_results/aug_22 data/"
+n_runs = 5
 
 
 def read_file(file_path):
@@ -99,6 +99,7 @@ def collect_loss_prec_data(m_type):
     rnn_runs_te_prec_low = list()
     m_path = base_path + m_type[1] + "/run"
     for i in range(n_runs):
+
        x_path = "{}{}/".format(m_path, str(i+1))
        rnn_te_batch_prec = read_file(x_path + "data/epo_te_precision.txt").split(",")
        rnn_te_batch_prec = np.array([np.round(float(item), 4) for item in rnn_te_batch_prec])

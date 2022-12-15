@@ -91,7 +91,7 @@ Execute data extraction script `extract_data.sh` to extract two tabular files - 
 
    `python scripts/main.py -wf data/worflow-connection-20-04.tsv -tu data/tool-popularity-20-04.tsv -om data/tool_recommendation_model.hdf5 -cd '2017-12-01' -pl 25 -ep 10 -oe 5 -me 20 -ts 0.2 -bs '32,256' -ut '32,256' -es '32,256' -dt '0.0,0.5' -sd '0.0,0.5' -rd '0.0,0.5' -lr '0.00001,0.1' -cpus 4`
 
-Once the script finishes, `H5` model file is created at the given location (`path to trained model file`).
+Once the script finishes, g for view to become activ`H5` model file is created at the given location (`path to trained model file`).
 
 ## (For Galaxy admins) The following steps are only necessary for deploying on any Galaxy server:
 
