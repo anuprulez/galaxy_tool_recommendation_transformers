@@ -30,7 +30,7 @@ License: MIT License
 
 2. Execute `sh train.sh` (https://github.com/anuprulez/galaxy_tool_recommendation_transformers/blob/master/train.sh). It runs on a subset of workflows.
 
-3. After successful finish (~2-3 minutes), a trained model is created at `data/aug_22/<<file name>>.hdf5`.
+3. After successful finish (~2-3 minutes), a trained model is created at `data/log/saved_model/<<last training iteration>>/tf_model_h5/<<model.h5>>`.
 
 ## Data description:
 
@@ -39,7 +39,6 @@ Execute data extraction script `extract_data.sh` to extract two tabular files - 
 ### Description of all parameters mentioned in the training script:
 
 `python <main python script> -wf <path to workflow file> -tu <path to tool usage file> -om <path to the final H5 model file> -cd <cutoff date to exclude old workflows> -pl <maximum length of tool path> -ti <number of training iterations> -nhd <number of attention heads> -ed <embedding dimensions> -fd <feed forward dimensions> -dt <dropout> -lr <learning rate> -ts <test data percentage> -trbs <training batch size> -tebs <test batch size> -trlg <train logging step> -telg <test logging step> -ud <use preprocessed data> --is_transformer <to use transformer or RNN>`
-
 
 ### (To reproduce this work on complete set of workflows) Example command:
 
