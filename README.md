@@ -33,6 +33,16 @@ License: MIT License
 3. After successful finish (~2-3 minutes), a trained model is created at `data/log/saved_model/<<last training iteration>>/tf_model_h5/<<model.h5>>`.
 4. For running on complete data: All datasets are shared at: https://doi.org/10.5281/zenodo.7825973. Download these two tabular files and add their paths in the `train.sh` file and execute.
 
+## Plots:
+
+## Transformer vs RNN
+
+![Precision@k](https://raw.githubusercontent.com/anuprulez/galaxy_tool_recommendation_transformers/master/plots/precision%40k_transformer_rnn.png "Precision@k")
+
+Attention scores:
+
+![Differential expression analysis workflow](https://raw.githubusercontent.com/anuprulez/galaxy_tool_recommendation_transformers/master/plots/attention_featurecounts_1_run_2_step_40000.png "Differential expression analysis workflow")
+
 ## Data description:
 
 Execute data extraction script `extract_data.sh` to extract two tabular files - `tool_popularity_Aug_22.csv` and `wf-subset.csv`. This script should be executed on a Galaxy instance's database (ideally should be executed by a Galaxy admin). There are two methods in the script one each to generate two tabular files. The first file contains information about the usage of tools per month. The second file contains workflows present as the connections of tools. Save these tabular files. These tabular files are present under `/data/aug_22/` folder and can be used to run deep learning training by following steps.
