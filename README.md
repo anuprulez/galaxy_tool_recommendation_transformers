@@ -31,6 +31,7 @@ License: MIT License
 2. Execute `sh train.sh` (https://github.com/anuprulez/galaxy_tool_recommendation_transformers/blob/master/train.sh). It runs on a subset of workflows.
 
 3. After successful finish (~2-3 minutes), a trained model is created at `data/log/saved_model/<<last training iteration>>/tf_model_h5/<<model.h5>>`.
+4. For running on complete data: All datasets are shared at: https://doi.org/10.5281/zenodo.7825973. Download these two tabular files and add their paths in the `train.sh` file and execute.
 
 ## Data description:
 
