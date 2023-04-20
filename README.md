@@ -14,7 +14,7 @@ Programming language: Python
 
 Scripts: https://github.com/anuprulez/galaxy_tool_recommendation_transformers/tree/master/scripts
 
-iPython notebook: <<>>
+IPython notebook for model comparison: https://github.com/anuprulez/galaxy_tool_recommendation_transformers/blob/master/notebooks/evaluate_model.ipynb)
 
 Training script: https://github.com/anuprulez/galaxy_tool_recommendation_transformers/blob/master/train.sh
 
