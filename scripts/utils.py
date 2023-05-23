@@ -12,6 +12,15 @@ binary_acc = tf.keras.metrics.BinaryAccuracy()
 categorical_ce = tf.keras.metrics.CategoricalCrossentropy(from_logits=True)
 
 
+def read_saved_file(file_path):
+    """
+    Read a file
+    """
+    with open(file_path, "r") as json_file:
+        file_content = json_file.read()
+    return file_content
+
+
 def read_file(file_path):
     """
     Read a file
@@ -25,11 +34,24 @@ def write_file(file_path, content):
     """
     Write a file
     """
-    remove_file(file_path)
+    #remove_file(file_path)
+    e_content = None
+    if os.path.isfile(file_path):
+        with open(file_path, "r") as r_file:
+            e_content = r_file.read()
+            e_content = e_content.strip()
+            try:
+                e_content = json.loads(e_content)
+            except:
+                pass
+            e_content = e_content.split(",")
     with open(file_path, "w") as json_file:
-        json_file.write(json.dumps(content))
-
-
+        if e_content != None:
+            e_content.extend(content)
+            json_file.write(",".join([str(item) for item in e_content]))
+        else:
+            json_file.write(",".join([str(item) for item in content]))
+    
 def save_h5_data(inp, tar, filename):
     hf_file = h5py.File(filename, 'w')
     hf_file.create_dataset("input", data=inp)

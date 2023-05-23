@@ -50,12 +50,12 @@ n_topk = 1
 max_seq_len = 25
 
 embed_dim = 128 # Embedding size for each token d_model
-num_heads = 6 # Number of attention heads
+num_heads = 4 # Number of attention heads
 ff_dim = 128 # Hidden layer size in feed forward network inside transformer # dff
 dropout = 0.1
 seq_len = 25
 
-model_type = "dnn"
+model_type = "dnn" # ["transformer, "rnn", "dnn", "cnn"]
 
 if model_type == "rnn":
     base_path = "log_19_09_22_GPU_RNN_full_data/"
@@ -63,12 +63,15 @@ if model_type == "rnn":
     #"/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/tool_prediction_datasets/computed_results/aug_22 data/rnn/run2/" #"log_19_09_22_GPU_RNN_full_data/" #"log_22_08_22_rnn/" #"log_08_08_22_rnn/"
 elif model_type == "cnn":
     base_path = "log_cnn/"
+    
 elif model_type == "transformer":
     base_path = "log_transformer/"
+    
 elif model_type == "dnn":
     base_path = "log_dnn/"
-    #"/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/tool_prediction_datasets/computed_results/aug_22 data/transformer/run2/"
-    #"log_19_09_22_GPU_transformer_full_data/" #"log_12_09_22_GPU/" #"log_19_09_22_GPU_transformer_full_data/" 
+    
+#"/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/tool_prediction_datasets/computed_results/aug_22 data/transformer/run2/"
+#"log_19_09_22_GPU_transformer_full_data/" #"log_12_09_22_GPU/" #"log_19_09_22_GPU_transformer_full_data/" 
 
 #"log_22_08_22_no_att_mask_no_regu/" #"log_22_08_22_att_mask_regu/"
 # log_12_09_22_GPU 
@@ -100,7 +103,7 @@ elif model_type == "dnn":
 
 #tr_pos_plot = [1000, 5000, 10000, 20000, 30000, 40000]
 
-model_number = 200
+model_number = 80
 model_path = base_path + "saved_model/" + str(model_number) + "/tf_model/"
 model_path_h5 = base_path + "saved_model/" + str(model_number) + "/tf_model_h5/"
 
@@ -163,7 +166,9 @@ def create_transformer_model_last_layer(maxlen, vocab_size):
     embed = Dense(ff_dim, activation="relu")(x)
     embed = Dropout(dropout)(embed)
     outputs = Dense(vocab_size, activation="sigmoid")(x)
-    return Model(inputs=inputs, outputs=[embed, weights])
+    model = Model(inputs=inputs, outputs=[embed, weights])
+    model.summary()
+    return model
 
 
 def verify_training_sampling(sampled_tool_ids, rev_dict):
@@ -332,30 +337,30 @@ def plot_low_te_prec(prec, t_value):
 
 
 def visualize_loss_acc():
-    epo_tr_batch_loss = utils.read_file(base_path + "data/epo_tr_batch_loss.txt").split(",")
+    epo_tr_batch_loss = utils.read_saved_file(base_path + "data/epo_tr_batch_loss.txt").split(",")
 
     #print(len(epo_tr_batch_loss))
     epo_tr_batch_loss = [np.round(float(item), 4) for item in epo_tr_batch_loss]
 
-    epo_tr_batch_acc = utils.read_file(base_path + "data/epo_tr_batch_acc.txt").split(",")
+    epo_tr_batch_acc = utils.read_saved_file(base_path + "data/epo_tr_batch_acc.txt").split(",")
     epo_tr_batch_acc = [np.round(float(item), 4) for item in epo_tr_batch_acc]
 
-    epo_te_batch_loss = utils.read_file(base_path + "data/epo_te_batch_loss.txt").split(",")
+    epo_te_batch_loss = utils.read_saved_file(base_path + "data/epo_te_batch_loss.txt").split(",")
     epo_te_batch_loss = [np.round(float(item), 4) for item in epo_te_batch_loss]
 
-    epo_te_batch_acc = utils.read_file(base_path + "data/epo_te_precision.txt").split(",")
+    epo_te_batch_acc = utils.read_saved_file(base_path + "data/epo_te_precision.txt").split(",")
     epo_te_batch_acc = [np.round(float(item), 4) for item in epo_te_batch_acc]
 
     #plot_loss_acc(epo_tr_batch_loss, epo_tr_batch_acc, "Training")
     #plot_loss_acc(epo_te_batch_loss, epo_te_batch_acc, "Test")
 
-    epo_te_low_batch_acc = utils.read_file(base_path + "data/epo_low_te_precision.txt").split(",")
+    epo_te_low_batch_acc = utils.read_saved_file(base_path + "data/epo_low_te_precision.txt").split(",")
     epo_te_low_batch_acc = [np.round(float(item), 4) for item in epo_te_low_batch_acc]
 
     plot_loss_acc(epo_te_batch_loss, epo_te_batch_acc, "Test", epo_te_low_batch_acc, "Lowest 25% tools")
 
     #plot_low_te_prec(epo_te_low_batch_acc, "Lowest 25% samples in test")
-    plot_rnn_transformer(epo_tr_batch_loss, epo_te_batch_loss)
+    #plot_rnn_transformer(epo_tr_batch_loss, epo_te_batch_loss)
 
 
 def sample_balanced(x_seqs, y_labels, ulabels_tr_dict):
@@ -465,8 +470,6 @@ def verify_tool_in_tr(r_dict):
     
     
 def create_cnn_model(seq_len, vocab_size):
-    #gru_units = config["feed_forward_dim"]
-    #dropout = config["dropout"]
     
     model = Sequential()
     model.add(Embedding(vocab_size+1, embed_dim, input_length=seq_len))
@@ -474,22 +477,25 @@ def create_cnn_model(seq_len, vocab_size):
     model.add(Conv2D(embed_dim, kernel_size=(16, 3), activation = 'relu', kernel_initializer='he_normal', padding = 'VALID'))
     model.add(Dropout(dropout))
     model.add(MaxPooling2D(pool_size=(2, 2)))
-    #model.add(Conv2D(2*gru_units, kernel_size=(8, 3), activation = 'relu', kernel_initializer='he_normal', padding = 'VALID'))
-    #model.add(Dropout(dropout))
-    #model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(Flatten())
     model.add(Dense(embed_dim, activation='relu', kernel_initializer='he_normal'))
     model.add(Dropout(dropout))
     model.add(Dense(vocab_size, activation='sigmoid'))
-    
-    model.summary()
 
-    return model #Model(inputs=[seq_inputs], outputs=[fc_output])
+    return model
     
     
 def create_dnn_model(seq_len, vocab_size):
-    #gru_units = config["feed_forward_dim"]
-    #dropout = config["dropout"]
+
+    '''model = Sequential()
+    model.add(Embedding(vocab_size+1, embed_dim, input_length=seq_len))
+    model.add(SpatialDropout1D(dropout))
+    model.add(Flatten())
+    model.add(Dense(embed_dim, input_shape=(seq_len,), activation="elu"))
+    model.add(Dropout(dropout))
+    model.add(Dense(embed_dim, activation="elu"))
+    model.add(Dropout(dropout))
+    model.add(Dense(vocab_size, activation="sigmoid"))'''
     
     model = Sequential()
     model.add(Embedding(vocab_size+1, embed_dim, input_length=seq_len))
@@ -500,10 +506,8 @@ def create_dnn_model(seq_len, vocab_size):
     model.add(Dense(embed_dim, activation="elu"))
     model.add(Dropout(dropout))
     model.add(Dense(vocab_size, activation="sigmoid"))
-    
-    model.summary()
 
-    return model #Model(inputs=[seq_inputs], outputs=[fc_output])
+    return model
 
 
 def read_h5_model(model_type):
@@ -514,7 +518,7 @@ def read_h5_model(model_type):
     r_dict = json.loads(model_h5["reverse_dict"][()].decode("utf-8"))
     #print(r_dict)
     m_load_s_time = time.time()
-    #tf_loaded_model = create_transformer_model(seq_len, len(r_dict) + 1)
+
     if model_type == "transformer":
         tf_loaded_model = create_transformer_model(seq_len, len(r_dict) + 1)
     elif model_type == "cnn":
@@ -522,7 +526,10 @@ def read_h5_model(model_type):
     elif model_type == "dnn":
         tf_loaded_model = create_dnn_model(seq_len, len(r_dict) + 1)   
 
+    tf_loaded_model.summary()
+    
     tf_loaded_model.load_weights(h5_path)
+    
     m_load_e_time = time.time()
     model_loading_time = m_load_e_time - m_load_s_time
 
@@ -542,11 +549,11 @@ def read_model():
     tf_loaded_model = tf.saved_model.load(model_path)
     m_load_e_time = time.time()
     m_l_time = m_load_e_time - m_load_s_time
-    r_dict = utils.read_file(base_path + "data/rev_dict.txt")
-    f_dict = utils.read_file(base_path + "data/f_dict.txt")
-    c_weights = utils.read_file(base_path + "data/class_weights.txt")
-    c_tools = utils.read_file(base_path + "data/compatible_tools.txt")
-    s_conn = utils.read_file(base_path + "data/published_connections.txt")
+    r_dict = utils.read_saved_file(base_path + "data/rev_dict.txt")
+    f_dict = utils.read_saved_file(base_path + "data/f_dict.txt")
+    c_weights = utils.read_saved_file(base_path + "data/class_weights.txt")
+    c_tools = utils.read_saved_file(base_path + "data/compatible_tools.txt")
+    s_conn = utils.read_saved_file(base_path + "data/published_connections.txt")
 
     return tf_loaded_model, f_dict, r_dict, c_weights, c_tools, s_conn, m_l_time
     
@@ -573,7 +580,7 @@ def plot_TSNE(embed, labels):
 
 def predict_seq():
 
-    #visualize_loss_acc()  
+    visualize_loss_acc()  
 
     #sys.exit()
 
@@ -600,11 +607,11 @@ def predict_seq():
         tf_loaded_model = tf.saved_model.load(model_path)
         m_load_e_time = time.time()
         model_loading_time = m_load_e_time - m_load_s_time
-        r_dict = utils.read_file(base_path + "data/rev_dict.txt")
-        f_dict = utils.read_file(base_path + "data/f_dict.txt")
-        class_weights = utils.read_file(base_path + "data/class_weights.txt")
-        compatible_tools = utils.read_file(base_path + "data/compatible_tools.txt")
-        published_connections = utils.read_file(base_path + "data/published_connections.txt")
+        r_dict = utils.read_saved_file(base_path + "data/rev_dict.txt")
+        f_dict = utils.read_saved_file(base_path + "data/f_dict.txt")
+        class_weights = utils.read_saved_file(base_path + "data/class_weights.txt")
+        compatible_tools = utils.read_saved_file(base_path + "data/compatible_tools.txt")
+        published_connections = utils.read_saved_file(base_path + "data/published_connections.txt")
     else: 
         #tf_loaded_model, f_dict, r_dict, class_weights, compatible_tools, published_connections, model_loading_time = read_model()
         tf_loaded_model, f_dict, r_dict, class_weights, compatible_tools, published_connections, model_loading_time = read_h5_model(model_type)
@@ -747,7 +754,7 @@ def predict_seq():
     #import sys
     #sys.exit()
     
-    te_lowest_t_ids = utils.read_file(base_path + "data/te_lowest_t_ids.txt")
+    te_lowest_t_ids = utils.read_saved_file(base_path + "data/te_lowest_t_ids.txt")
     lowest_t_ids = [int(item) for item in te_lowest_t_ids.split(",")]
     print(lowest_t_ids)
     lowest_t_ids = lowest_t_ids[:5]

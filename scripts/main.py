@@ -42,6 +42,8 @@ if __name__ == "__main__":
     arg_parser.add_argument("-telg", "--te_logging_step", required=True, help="Test logging frequency")
     arg_parser.add_argument("-tebs", "--te_batch_size", required=True, help="Test batch size")
     arg_parser.add_argument("-mt", "--model_type", required=True, help="type of model")
+    arg_parser.add_argument("-rs", "--restart_step", required=True, help="restart training from step")
+    
 
     # get argument values
     args = vars(arg_parser.parse_args())
@@ -65,7 +67,8 @@ if __name__ == "__main__":
     tr_logging_step = int(args["tr_logging_step"])
     use_data = args["use_data"]
     model_type = args["model_type"]
-
+    restart_step = int(args["restart_step"])
+    
     config = {
         'cutoff_date': cutoff_date,
         'maximum_path_length': maximum_path_length,
@@ -80,7 +83,8 @@ if __name__ == "__main__":
         'tr_logging_step': tr_logging_step,
         'tr_batch_size': tr_batch_size,
         'te_batch_size': te_batch_size,
-        'model_type': model_type
+        'model_type': model_type,
+        'restart_step': restart_step
     }
 
     if use_data == "true":
