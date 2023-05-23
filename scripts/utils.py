@@ -225,11 +225,11 @@ def compute_acc(y_true, y_pred):
     return binary_acc(y_true, y_pred)
 
 
-def validate_model(te_x, te_y, te_batch_size, model, f_dict, r_dict, ulabels_te_dict, tr_labels, lowest_t_ids, is_transformer):
+def validate_model(te_x, te_y, te_batch_size, model, f_dict, r_dict, ulabels_te_dict, tr_labels, lowest_t_ids, model_type):
     print("Total test data size: ", te_x.shape, te_y.shape)
     te_x_batch, y_train_batch, _ = sample_balanced_te_y(te_x, te_y, ulabels_te_dict, te_batch_size)
     print("Batch test data size: ", te_x_batch.shape, y_train_batch.shape)
-    if is_transformer == "true":
+    if model_type == "transformer":
         te_pred_batch, _ = model(te_x_batch, training=False)
     else:
         te_pred_batch = model(te_x_batch, training=False)
@@ -264,7 +264,7 @@ def validate_model(te_x, te_y, te_batch_size, model, f_dict, r_dict, ulabels_te_
     print("Test lowest ids", len(lowest_t_ids))
     low_te_data = te_x[lowest_t_ids]
     low_te_labels = te_y[lowest_t_ids]
-    if is_transformer == "true":
+    if model_type == "transformer":
         low_te_pred_batch, _ = model(low_te_data, training=False)
     else:
         low_te_pred_batch = model(low_te_data, training=False)
@@ -293,7 +293,7 @@ def validate_model(te_x, te_y, te_batch_size, model, f_dict, r_dict, ulabels_te_
             print("-----------------")
             print()
 
-    print("Test binary errte_batch_sizeor: {}, test categorical loss: {}, test categorical accuracy: {}".format(test_err.numpy(), test_categorical_loss.numpy(), test_acc.numpy()))
+    print("Test binary error: {}, test categorical loss: {}, test categorical accuracy: {}".format(test_err.numpy(), test_categorical_loss.numpy(), test_acc.numpy()))
     print("Test prediction precision: {}".format(np.mean(te_pre_precision)))
     print("Low test binary error: {}".format(low_test_err.numpy()))
     print("Low test prediction precision: {}".format(np.mean(low_te_precision)))

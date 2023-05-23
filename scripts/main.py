@@ -13,6 +13,8 @@ from scripts import extract_workflow_connections
 from scripts import prepare_data
 from scripts import utils
 import train_transformer
+import train_dnn
+import train_cnn
 import train_rnn
 
 
@@ -39,7 +41,7 @@ if __name__ == "__main__":
     arg_parser.add_argument("-trlg", "--tr_logging_step", required=True, help="Train logging frequency")
     arg_parser.add_argument("-telg", "--te_logging_step", required=True, help="Test logging frequency")
     arg_parser.add_argument("-tebs", "--te_batch_size", required=True, help="Test batch size")
-    arg_parser.add_argument("-istrf", "--is_transformer", required=True, help="If transformer or rnn")
+    arg_parser.add_argument("-mt", "--model_type", required=True, help="type of model")
 
     # get argument values
     args = vars(arg_parser.parse_args())
@@ -62,7 +64,7 @@ if __name__ == "__main__":
     te_logging_step = int(args["te_logging_step"])
     tr_logging_step = int(args["tr_logging_step"])
     use_data = args["use_data"]
-    is_transformer = args["is_transformer"]
+    model_type = args["model_type"]
 
     config = {
         'cutoff_date': cutoff_date,
@@ -78,7 +80,7 @@ if __name__ == "__main__":
         'tr_logging_step': tr_logging_step,
         'tr_batch_size': tr_batch_size,
         'te_batch_size': te_batch_size,
-        'is_transformer': is_transformer
+        'model_type': model_type
     }
 
     if use_data == "true":
@@ -95,10 +97,14 @@ if __name__ == "__main__":
         print("True size: ", train_data.shape, train_labels.shape, test_data.shape, test_labels.shape)
         print(len(r_dict), len(f_dict))
         print("Extracted size: ", train_data.shape, train_labels.shape, test_data.shape, test_labels.shape)
-        if is_transformer == "true":
+        if model_type == "transformer":
             train_transformer.create_enc_transformer(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
-        else:
+        elif model_type == "rnn":
             train_rnn.create_rnn_architecture(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
+        elif model_type == "dnn":
+            train_dnn.create_dnn_architecture(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
+        elif model_type == "cnn":
+            train_cnn.create_cnn_architecture(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
     else:
         print("Preprocessing workflows...")
         # Extract and process workflows
@@ -111,10 +117,15 @@ if __name__ == "__main__":
         data = prepare_data.PrepareData(maximum_path_length, te_share)
         train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, tr_tool_freq = data.get_data_labels_matrices(workflow_paths, usage_df, cutoff_date, pub_conn)
         print(train_data.shape, train_labels.shape, test_data.shape, test_labels.shape)
-        if is_transformer == "true":
+        if model_type == "transformer":
             train_transformer.create_enc_transformer(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
-        else:
+        elif model_type == "rnn":
             train_rnn.create_rnn_architecture(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
+        elif model_type == "dnn":
+            train_dnn.create_dnn_architecture(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
+        elif model_type == "cnn":
+            train_cnn.create_cnn_architecture(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_tool_freq, config)
+        
     end_time = time.time()
     print()
     print("Program finished in %s seconds" % str(end_time - start_time))

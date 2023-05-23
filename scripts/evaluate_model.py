@@ -16,12 +16,19 @@ from tensorflow import keras
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, GRU, Dropout, Embedding, SpatialDropout1D
 from tensorflow.keras.layers import MultiHeadAttention, LayerNormalization, Dropout, Layer
+from tensorflow.keras.layers import Conv1D, Conv2D, MaxPooling2D, Flatten, Lambda, GlobalMaxPooling1D
 from tensorflow.keras import backend as K
 
 from tensorflow.keras.layers import Embedding, Input, GlobalAveragePooling1D, Dense
 from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.optimizers import RMSprop
 from tensorflow.keras.callbacks import EarlyStopping
+
+import numpy as np
+from sklearn.manifold import TSNE
+import pandas as pd
+import seaborn as sns
+from matplotlib.pyplot import figure
 
 
 #import onnx
@@ -37,24 +44,31 @@ fig_size = (15, 15)
 font = {'family': 'serif', 'size': 8}
 plt.rc('font', **font)
 
-batch_size = 100
-test_batches = 0
+batch_size = 10
+test_batches = 10
 n_topk = 1
 max_seq_len = 25
 
 embed_dim = 128 # Embedding size for each token d_model
-num_heads = 4 # Number of attention heads
+num_heads = 6 # Number of attention heads
 ff_dim = 128 # Hidden layer size in feed forward network inside transformer # dff
 dropout = 0.1
 seq_len = 25
 
-predict_rnn = False
+model_type = "dnn"
 
-if predict_rnn is True:
+if model_type == "rnn":
     base_path = "log_19_09_22_GPU_RNN_full_data/"
+    #"log_19_09_22_GPU_RNN_full_data/"
     #"/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/tool_prediction_datasets/computed_results/aug_22 data/rnn/run2/" #"log_19_09_22_GPU_RNN_full_data/" #"log_22_08_22_rnn/" #"log_08_08_22_rnn/"
-else:
-    base_path = "log_19_09_22_GPU_transformer_full_data/" #"log_12_09_22_GPU/" #"log_19_09_22_GPU_transformer_full_data/" 
+elif model_type == "cnn":
+    base_path = "log_cnn/"
+elif model_type == "transformer":
+    base_path = "log_transformer/"
+elif model_type == "dnn":
+    base_path = "log_dnn/"
+    #"/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/tool_prediction_datasets/computed_results/aug_22 data/transformer/run2/"
+    #"log_19_09_22_GPU_transformer_full_data/" #"log_12_09_22_GPU/" #"log_19_09_22_GPU_transformer_full_data/" 
 
 #"log_22_08_22_no_att_mask_no_regu/" #"log_22_08_22_att_mask_regu/"
 # log_12_09_22_GPU 
@@ -86,7 +100,7 @@ else:
 
 #tr_pos_plot = [1000, 5000, 10000, 20000, 30000, 40000]
 
-model_number = 40000
+model_number = 200
 model_path = base_path + "saved_model/" + str(model_number) + "/tf_model/"
 model_path_h5 = base_path + "saved_model/" + str(model_number) + "/tf_model_h5/"
 
@@ -134,7 +148,22 @@ def create_transformer_model(maxlen, vocab_size):
     x = Dense(ff_dim, activation="relu")(x)
     x = Dropout(dropout)(x)
     outputs = Dense(vocab_size, activation="sigmoid")(x)
-    return Model(inputs=inputs, outputs=[outputs, weights])
+    return Model(inputs=inputs, outputs=[x, outputs, weights])
+    
+    
+def create_transformer_model_last_layer(maxlen, vocab_size):
+    inputs = Input(shape=(maxlen,))
+    #a_mask = Input(shape=(maxlen, maxlen))
+    embedding_layer = transformer_network.TokenAndPositionEmbedding(maxlen, vocab_size, embed_dim)
+    x = embedding_layer(inputs)
+    transformer_block = transformer_network.TransformerBlock(embed_dim, num_heads, ff_dim)
+    x, weights = transformer_block(x)
+    x = GlobalAveragePooling1D()(x)
+    x = Dropout(dropout)(x)
+    embed = Dense(ff_dim, activation="relu")(x)
+    embed = Dropout(dropout)(embed)
+    outputs = Dense(vocab_size, activation="sigmoid")(x)
+    return Model(inputs=inputs, outputs=[embed, weights])
 
 
 def verify_training_sampling(sampled_tool_ids, rev_dict):
@@ -254,10 +283,14 @@ def plot_loss_acc(loss, acc, t_value, low_acc, low_t_value):
     plt.ylabel("Loss")
     plt.xlabel("Training steps")
     plt.grid(True)
-    if predict_rnn is True:
+    if model_type == "rnn":
         plt.title("{} {} loss".format("RNN (GRU):", t_value))
-    else:
+    elif model_type == "transformer":
         plt.title("{} {} loss".format("Transformer:", t_value))
+    elif model_type == "cnn":
+        plt.title("{} {} loss".format("CNN:", t_value))
+    
+    
     plt.savefig(base_path + "/data/{}_loss.pdf".format(t_value), dpi=300)
     plt.savefig(base_path + "/data/{}_loss.png".format(t_value), dpi=300)
     plt.show()
@@ -274,10 +307,12 @@ def plot_loss_acc(loss, acc, t_value, low_acc, low_t_value):
     plt.grid(True)
     plt.legend([t_value, low_t_value])
     #plt.title("{} precision@k".format(t_value))
-    if predict_rnn is True:
+    if model_type == "rnn":
         plt.title("{} {} precision@k".format("RNN (GRU):", t_value))
-    else:
+    elif model_type == "transformer":
         plt.title("{} {} precision@k".format("Transformer:", t_value))
+    elif model_type == "cnn":
+        plt.title("{} {} precision@k".format("CNN:", t_value))
     plt.savefig(base_path + "/data/{}_acc_low_acc.pdf".format(t_value), dpi=300)
     plt.savefig(base_path + "/data/{}_acc_low_acc.png".format(t_value), dpi=300)
     plt.show()
@@ -380,39 +415,6 @@ def get_u_tr_labels(y_tr):
     return u_labels, labels_pos_dict
 
 
-'''
-
-#TODO: to change
-
-def get_u_tr_labels(x_tr, y_tr):
-    labels = list()
-    labels_pos_dict = dict()
-    for i, (item_x, item_y) in enumerate(zip(x_tr, y_tr)):
-        all_pos = list()
-        label_pos = np.where(item_y > 0)[0]
-        data_pos = np.where(item_x > 0)[0]
-        data_pos = [int(a) for a in item_x[data_pos]]
-        labels.extend(label_pos)
-        labels.extend(data_pos) 
-        all_pos.extend(label_pos)
-        all_pos.extend(data_pos)
-        #print(i, item_x, data_pos, label_pos)
-        #print()plot_model_usage_time
-        for label in all_pos:
-            if label not in labels_pos_dict:
-                labels_pos_dict[label] = list()
-            labels_pos_dict[label].append(i)
-
-    u_labels = list(set(labels))
-    
-    for item in labels_pos_dict:
-        labels_pos_dict[item] = list(set(labels_pos_dict[item]))
-    #print(labels_pos_dict)
-    #sys.exit()
-    return u_labels, labels_pos_dict
-'''
-
-
 def sample_balanced_tr_y(x_seqs, y_labels, ulabels_tr_y_dict):
     batch_y_tools = list(ulabels_tr_y_dict.keys())
     random.shuffle(batch_y_tools)
@@ -460,17 +462,66 @@ def verify_tool_in_tr(r_dict):
     utils.write_file(base_path + "data/s_freq.txt", s_freq)
 
     return s_freq
+    
+    
+def create_cnn_model(seq_len, vocab_size):
+    #gru_units = config["feed_forward_dim"]
+    #dropout = config["dropout"]
+    
+    model = Sequential()
+    model.add(Embedding(vocab_size+1, embed_dim, input_length=seq_len))
+    model.add(Lambda(lambda x: tf.expand_dims(x, 3)))
+    model.add(Conv2D(embed_dim, kernel_size=(16, 3), activation = 'relu', kernel_initializer='he_normal', padding = 'VALID'))
+    model.add(Dropout(dropout))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    #model.add(Conv2D(2*gru_units, kernel_size=(8, 3), activation = 'relu', kernel_initializer='he_normal', padding = 'VALID'))
+    #model.add(Dropout(dropout))
+    #model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Flatten())
+    model.add(Dense(embed_dim, activation='relu', kernel_initializer='he_normal'))
+    model.add(Dropout(dropout))
+    model.add(Dense(vocab_size, activation='sigmoid'))
+    
+    model.summary()
+
+    return model #Model(inputs=[seq_inputs], outputs=[fc_output])
+    
+    
+def create_dnn_model(seq_len, vocab_size):
+    #gru_units = config["feed_forward_dim"]
+    #dropout = config["dropout"]
+    
+    model = Sequential()
+    model.add(Embedding(vocab_size+1, embed_dim, input_length=seq_len))
+    model.add(SpatialDropout1D(dropout))
+    model.add(Flatten())
+    model.add(Dense(embed_dim, input_shape=(seq_len,), activation="elu"))
+    model.add(Dropout(dropout))
+    model.add(Dense(embed_dim, activation="elu"))
+    model.add(Dropout(dropout))
+    model.add(Dense(vocab_size, activation="sigmoid"))
+    
+    model.summary()
+
+    return model #Model(inputs=[seq_inputs], outputs=[fc_output])
 
 
-def read_h5_model():
+def read_h5_model(model_type):
     print(model_path_h5)
     h5_path = model_path_h5 + "model.h5"
     model_h5 = h5py.File(h5_path, 'r')
 
     r_dict = json.loads(model_h5["reverse_dict"][()].decode("utf-8"))
-    print(r_dict)
+    #print(r_dict)
     m_load_s_time = time.time()
-    tf_loaded_model = create_transformer_model(seq_len, len(r_dict) + 1)
+    #tf_loaded_model = create_transformer_model(seq_len, len(r_dict) + 1)
+    if model_type == "transformer":
+        tf_loaded_model = create_transformer_model(seq_len, len(r_dict) + 1)
+    elif model_type == "cnn":
+        tf_loaded_model = create_cnn_model(seq_len, len(r_dict) + 1)
+    elif model_type == "dnn":
+        tf_loaded_model = create_dnn_model(seq_len, len(r_dict) + 1)   
+
     tf_loaded_model.load_weights(h5_path)
     m_load_e_time = time.time()
     model_loading_time = m_load_e_time - m_load_s_time
@@ -499,6 +550,26 @@ def read_model():
 
     return tf_loaded_model, f_dict, r_dict, c_weights, c_tools, s_conn, m_l_time
     
+    
+def plot_TSNE(embed, labels):
+    print("Plotting embedding...")
+    print(labels)
+
+    #perplexity = 50
+    n_colors = 10
+    figsize = (8, 8)
+
+    figure(figsize=figsize, dpi=150)
+
+    z = TSNE(n_components=2).fit_transform(embed)
+
+    df = pd.DataFrame()
+    df["comp-1"] = z[:,0]
+    df["comp-2"] = z[:,1]
+
+    sns.scatterplot(x="comp-1", y="comp-2", hue=labels, data=df).set(title="T-SNE projection") #palette=sns.color_palette("hls", n_colors)
+    plt.show()
+    
 
 def predict_seq():
 
@@ -512,6 +583,8 @@ def predict_seq():
     #verify_training_sampling(tool_tr_freq, r_dict)  
 
     path_test_data = base_path + "saved_data/test.h5"
+    
+    print(path_test_data)
 
     file_obj = h5py.File(path_test_data, 'r')
 
@@ -521,7 +594,7 @@ def predict_seq():
 
     print(test_input.shape, test_target.shape)
 
-    if predict_rnn is True:
+    if model_type == "rnn":
         print(model_path)
         m_load_s_time = time.time()
         tf_loaded_model = tf.saved_model.load(model_path)
@@ -532,9 +605,9 @@ def predict_seq():
         class_weights = utils.read_file(base_path + "data/class_weights.txt")
         compatible_tools = utils.read_file(base_path + "data/compatible_tools.txt")
         published_connections = utils.read_file(base_path + "data/published_connections.txt")
-    else:
-        tf_loaded_model, f_dict, r_dict, class_weights, compatible_tools, published_connections, model_loading_time = read_model()
-        #tf_loaded_model, f_dict, r_dict, class_weights, compatible_tools, published_connections, model_loading_time = read_h5_model()
+    else: 
+        #tf_loaded_model, f_dict, r_dict, class_weights, compatible_tools, published_connections, model_loading_time = read_model()
+        tf_loaded_model, f_dict, r_dict, class_weights, compatible_tools, published_connections, model_loading_time = read_h5_model(model_type)
 
     '''all_tr_label_tools = verify_tool_in_tr(r_dict)
     all_tr_label_tools_ids = list(all_tr_label_tools.keys())
@@ -556,9 +629,9 @@ def predict_seq():
 
         te_x_batch, y_train_batch, selected_label_tools, bat_ind = sample_balanced_tr_y(test_input, test_target, u_te_y_labels_dict)
 
-        '''print(j * batch_size, j * batch_size + batch_size)
-        te_x_batch = test_input[j * batch_size : j * batch_size + batch_size, :]
-        y_train_batch = test_target[j * batch_size : j * batch_size + batch_size, :]'''
+        #print(j * batch_size, j * batch_size + batch_size)
+        #te_x_batch = test_input[j * batch_size : j * batch_size + batch_size, :]
+        #y_train_batch = test_target[j * batch_size : j * batch_size + batch_size, :]
 
         #te_x_batch = tf.convert_to_tensor(te_x_batch, dtype=tf.int64)
         #te_x_mask = utils.create_padding_mask(te_x_batch)
@@ -569,37 +642,48 @@ def predict_seq():
         #model([x_train, att_mask], training=True)
         pred_s_time = time.time()
         
-        if predict_rnn is True:
+        tf_loaded_model.summary()
+        
+        if model_type in ["cnn", "rnn", "dnn"]:
             te_prediction = tf_loaded_model(te_x_batch, training=False)
         else:
             #te_x_mask = tf.cast(te_x_mask, dtype=tf.float32)
             #te_prediction, att_weights = tf_loaded_model([te_x_batch, te_x_mask], training=False)
-            te_prediction, att_weights = tf_loaded_model(te_x_batch, training=False)
+            embed, te_prediction, att_weights = tf_loaded_model(te_x_batch, training=False)
+            #plot_TSNE(embed)
+            print(embed.shape, te_prediction.shape, att_weights.shape)
            
         pred_e_time = time.time()
         diff_time = (pred_e_time - pred_s_time) / float(batch_size)
         batch_pred_time.append(diff_time)
-
+        filter_embed = list()
+        filter_embed_label = list()
+        filter_embed_label_names = list()
         for i, (inp, tar) in enumerate(zip(te_x_batch, y_train_batch)):
 
             t_ip = te_x_batch[i]
             tar = y_train_batch[i]
             prediction = te_prediction[i]
-            if len(np.where(inp > 0)[0]) <= max_seq_len:
-               
+            #if len(np.where(inp > 0)[0]) <= max_seq_len:
+            if len(np.where(tar > 0)[0]) == 1:
+                print(tar, len(np.where(tar > 0)[0]))
                 real_prediction = np.where(tar > 0)[0]
                 target_pos = real_prediction #list(set(all_tr_label_tools_ids).intersection(set(real_prediction)))
 
                 prediction_wts = tf.math.multiply(c_weights, prediction)
-
+                #filter_embed.append(embed[i])
                 n_topk = len(target_pos)
                 top_k = tf.math.top_k(prediction, k=n_topk, sorted=True)
-                print(top_k.indices.numpy())
+                print(i, top_k.indices.numpy())
                 top_k_wts = tf.math.top_k(prediction_wts, k=n_topk, sorted=True)
 
                 t_ip = t_ip.numpy()
                 label_pos = np.where(t_ip > 0)[0]
-
+                
+                one_target_pos = target_pos[np.random.randint(len(target_pos))]
+                #filter_embed_label_names.append(r_dict[str(one_target_pos)])
+                #filter_embed_label.append(str(one_target_pos))
+                
                 i_names = ",".join([r_dict[str(int(item))] for item in t_ip[label_pos]  if item not in [0, "0"]])
                 t_names = ",".join([r_dict[str(int(item))] for item in target_pos  if item not in [0, "0"]])
 
@@ -655,11 +739,18 @@ def predict_seq():
                 #generated_attention(att_weights[i], i_names, f_dict, r_dict)
                 #plot_attention_head_axes(att_weights)
                 print("Batch {} prediction finished ...".format(j+1))
-
+    #print(filter_embed_label_names)
+    #plot_TSNE(np.array(filter_embed), filter_embed_label_names)
+    
+    #print(list(set(filter_embed_label_names)))
+    
+    #import sys
+    #sys.exit()
+    
     te_lowest_t_ids = utils.read_file(base_path + "data/te_lowest_t_ids.txt")
     lowest_t_ids = [int(item) for item in te_lowest_t_ids.split(",")]
     print(lowest_t_ids)
-    lowest_t_ids = [] #lowest_t_ids[:5]
+    lowest_t_ids = lowest_t_ids[:5]
     
     low_te_data = test_input[lowest_t_ids]
     low_te_labels = test_target[lowest_t_ids]
@@ -672,12 +763,13 @@ def predict_seq():
     low_te_pred_time = list()
 
     pred_s_time = time.time()
-    if predict_rnn is True:
+    if model_type in ["cnn", "rnn", "dnn"]:
         bat_low_prediction = tf_loaded_model(low_te_data, training=False)
     else:
         #low_te_data_mask = tf.cast(low_te_data_mask, dtype=tf.float32)
         #bat_low_prediction, att_weights = tf_loaded_model([low_te_data, low_te_data_mask], training=False)
-        bat_low_prediction, att_weights = tf_loaded_model(low_te_data, training=False)
+        bat_embed_low, bat_low_prediction, att_weights = tf_loaded_model(low_te_data, training=False)
+        print(bat_embed_low.shape, bat_low_prediction.shape, att_weights.shape)
     pred_e_time = time.time()
     low_diff_pred_t = 0 #(pred_e_time - pred_s_time) / float(len(lowest_t_ids))
     low_te_pred_time.append(low_diff_pred_t)
@@ -737,6 +829,8 @@ def predict_seq():
         print()
         print("Low: test average prediction time: {}".format(np.mean(low_te_pred_time)))
         print()
+        
+    sys.exit()
     print("----------------------------")
     print()
     print("Predicting for individual sequences...")
@@ -771,13 +865,14 @@ def predict_seq():
     #t_ip[7] = int(f_dict["cat1"])
     #t_ip[8] = int(f_dict["anndata_manipulate"])
     # 'snpEff_build_gb', 'bwa_mem', 'samtools_view', snpeff_sars_cov_2
+    
     last_tool_name = "cardinal_segmentations"
     
     t_ip = tf.convert_to_tensor(t_ip, dtype=tf.int64)
     t_ip = tf.cast(t_ip, dtype=tf.float32)
     
     pred_s_time = time.time()
-    if predict_rnn is True:
+    if model_type in ["cnn", "rnn", "dnn"]:
         prediction = tf_loaded_model(t_ip, training=False)
     else:
         #t_ip_mask = utils.create_padding_mask(t_ip)
@@ -833,13 +928,17 @@ def generated_attention(attention_weights, i_names, f_dict, r_dict):
     i_names = i_names.split(",")
     in_tokens = i_names
     out_tokens = i_names
-    fig = plt.figure(figsize=(16, 8))
+    
+    #print(attention_heads.shape)
+    mean_att = np.mean(attention_heads, axis=0)
     for h, head in enumerate(attention_heads):
-      ax = fig.add_subplot(2, 4, h+1)
       plot_attention_head(in_tokens, out_tokens, head)
-      ax.set_xlabel(f'Head {h+1}')
-    plt.tight_layout()
-    plt.show()
+      #ax = fig.add_subplot(2, 4, h+1)
+      #print(attention_heads.shape)
+      break
+    #print(mean_att.shape)
+    #plot_attention_head(in_tokens, out_tokens, mean_att)
+    #ax.set_xlabel(f'Head {h+1}')
 
 
 def plot_attention_head(in_tokens, out_tokens, attention):
@@ -847,10 +946,12 @@ def plot_attention_head(in_tokens, out_tokens, attention):
   # The model didn't generate `<START>` in the output. Skip it.
   #translated_tokens = translated_tokens[1:]
   #print(attention)
+  fig = plt.figure(figsize=(16, 8))
   ax = plt.gca()
-  ax.matshow(attention[:len(in_tokens), :len(out_tokens)])
+  cax = ax.matshow(attention[:len(in_tokens), :len(out_tokens)], interpolation='nearest')
   #ax.imshow(attention[:len(in_tokens), :len(out_tokens)], origin="upper")
   #ax.matshow(attention)
+  ax.set_xlabel(f'Head')
 
   ax.set_xticks(range(len(in_tokens)))
   ax.set_xticklabels(in_tokens, rotation=90)
@@ -858,6 +959,10 @@ def plot_attention_head(in_tokens, out_tokens, attention):
   ax.set_yticks(range(len(out_tokens)))
   #ax.set_yticklabels(out_tokens[::-1])
   ax.set_yticklabels(out_tokens)
+  #cax = ax.matshow(data, interpolation='nearest')
+  fig.colorbar(cax)
+  plt.tight_layout()
+  plt.show()
 
 
 def plot_attention_head_axes(att_weights):

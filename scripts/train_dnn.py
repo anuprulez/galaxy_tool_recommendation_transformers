@@ -1,41 +1,76 @@
 import os
+import random
 import numpy as np
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
-from tensorflow.keras.layers import Dense, Dropout, GlobalAveragePooling1D, Input
-from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Dropout, Embedding, Input, Dense, GRU, SpatialDropout1D, Flatten
+from tensorflow.keras.models import Model, Sequential
 
 import utils
-import transformer_network
+
+
+'''embed_dim = 128
+ff_dim = 128
+dropout = 0.1
+n_train_batches = 50
+batch_size = 128
+test_logging_step = 10
+train_logging_step = 10
+te_batch_size = batch_size
+learning_rate = 1e-3'''
 
 base_path = "log/"
 model_path = base_path + "saved_model/"
 
 
+binary_ce = tf.keras.losses.BinaryCrossentropy()
+binary_acc = tf.keras.metrics.BinaryAccuracy()
+categorical_ce = tf.keras.metrics.CategoricalCrossentropy(from_logits=True)
+
+
 def create_model(vocab_size, config):
-    embed_dim = config["embedding_dim"]
-    ff_dim = config["feed_forward_dim"]
-    max_len = config["maximum_path_length"]
+    dnn_units = config["feed_forward_dim"]
     dropout = config["dropout"]
+    seq_len = config["maximum_path_length"]
 
-    inputs = Input(shape=(max_len,))
-    embedding_layer = transformer_network.TokenAndPositionEmbedding(max_len, vocab_size, embed_dim)
-    x = embedding_layer(inputs)
-    transformer_block = transformer_network.TransformerBlock(embed_dim, config["n_heads"], ff_dim)
-    x, weights = transformer_block(x)
-    x = GlobalAveragePooling1D()(x)
-    x = Dropout(dropout)(x)
-    x = Dense(ff_dim, activation="relu")(x)
-    x = Dropout(dropout)(x)
-    outputs = Dense(vocab_size, activation="sigmoid")(x)
-    return Model(inputs=inputs, outputs=[outputs, weights])
+    '''seq_inputs = Input(batch_shape=(None, config["maximum_path_length"]))
+
+    gen_embedding = Embedding(vocab_size, config["embedding_dim"], mask_zero=True)
+    in_gru = GRU(gru_units, return_sequences=True, return_state=False)
+    out_gru = GRU(gru_units, return_sequences=False, return_state=True)
+    enc_fc = Dense(vocab_size, activation='sigmoid', kernel_regularizer="l2")
+
+    embed = gen_embedding(seq_inputs)
+
+    embed = Dropout(dropout)(embed)
+
+    gru_output = in_gru(embed)
+
+    gru_output = Dropout(dropout)(gru_output)
+
+    gru_output, hidden_state = out_gru(gru_output)
+
+    gru_output = Dropout(dropout)(gru_output)
+
+    fc_output = enc_fc(gru_output)'''
+
+    model = Sequential()
+    model.add(Embedding(vocab_size+1, dnn_units, input_length=seq_len))
+    model.add(SpatialDropout1D(dropout))
+    model.add(Flatten())
+    model.add(Dense(dnn_units, input_shape=(seq_len,), activation="elu"))
+    model.add(Dropout(dropout))
+    model.add(Dense(dnn_units, activation="elu"))
+    model.add(Dropout(dropout))
+    model.add(Dense(vocab_size, activation="sigmoid"))
+
+    return model #Model(inputs=[seq_inputs], outputs=[fc_output])
 
 
-def create_enc_transformer(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_t_freq, config):
-    print("Train transformer...")
+def create_dnn_architecture(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_t_freq, config):
+
+    print("Training RNN...")
     vocab_size = len(f_dict) + 1
-    maxlen = config["maximum_path_length"]
 
     enc_optimizer = tf.keras.optimizers.Adam(learning_rate=config["learning_rate"])
 
@@ -71,7 +106,7 @@ def create_enc_transformer(train_data, train_labels, test_data, test_labels, f_d
         print("Batch train data size: ", x_train.shape, y_train.shape)
         all_sel_tool_ids.extend(sel_tools)
         with tf.GradientTape() as model_tape:
-            prediction, att_weights = model(x_train, training=True)
+            prediction = model(x_train, training=True)
             tr_loss, tr_cat_loss = utils.compute_loss(y_train, prediction)
             tr_acc = tf.reduce_mean(utils.compute_acc(y_train, prediction))
         trainable_vars = model.trainable_variables
@@ -99,6 +134,7 @@ def create_enc_transformer(train_data, train_labels, test_data, test_labels, f_d
                 os.mkdir(tf_path)
                 os.mkdir(tf_model_save)
                 os.mkdir(tf_model_save_h5)
+
             tf.saved_model.save(model, tf_model_save)
             utils.save_model_file(tf_model_save_h5, model, r_dict, c_wts, c_tools, pub_conn)
     new_dict = dict()

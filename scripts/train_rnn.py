@@ -86,7 +86,7 @@ def create_rnn_architecture(train_data, train_labels, test_data, test_labels, f_
     n_train_steps = config["n_train_iter"]
     te_batch_size = config["te_batch_size"]
     tr_batch_size = config["tr_batch_size"]
-    is_transformer = config["is_transformer"]
+    model_type = config["model_type"]
 
     sel_tools = list()
     for batch in range(n_train_steps):
@@ -107,7 +107,7 @@ def create_rnn_architecture(train_data, train_labels, test_data, test_labels, f_
         print("Step {}/{}, training binary loss: {}, categorical_loss: {}, training accuracy: {}".format(batch+1, n_train_steps, tr_loss.numpy(), tr_cat_loss.numpy(), tr_acc.numpy()))
         if (batch+1) % te_log_step == 0:
             print("Predicting on test data...")
-            te_loss, te_acc, test_cat_loss, te_prec, low_te_prec = utils.validate_model(test_data, test_labels, te_batch_size, model, f_dict, r_dict, u_te_y_labels_dict, trained_on_labels, te_lowest_t_ids, is_transformer)
+            te_loss, te_acc, test_cat_loss, te_prec, low_te_prec = utils.validate_model(test_data, test_labels, te_batch_size, model, f_dict, r_dict, u_te_y_labels_dict, trained_on_labels, te_lowest_t_ids, model_type)
             epo_te_batch_loss.append(te_loss)
             epo_te_batch_acc.append(te_acc)
             epo_te_batch_categorical_loss.append(test_cat_loss)
