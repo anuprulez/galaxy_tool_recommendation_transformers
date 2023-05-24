@@ -233,7 +233,7 @@ class PrepareData:
                 last_tool_freq[tool_pos] += 1
                 freq_dict_names[reverse_dictionary[int(tool_pos)]] += 1
         sorted_dict = dict(sorted(last_tool_freq.items(), key=lambda kv: kv[1], reverse=True))
-        utils.write_file("log/data/train_tool_freq.txt", sorted_dict)
+        utils.write_dictionary("log/data/train_tool_freq.txt", sorted_dict)
         return sorted_dict
 
     def get_train_last_tool_freq(self, train_paths, reverse_dictionary):
@@ -254,7 +254,7 @@ class PrepareData:
             last_tool_freq[last_tool] += 1
             freq_dict_names[reverse_dictionary[int(last_tool)]] += 1
         sorted_dict = dict(sorted(last_tool_freq.items(), key=lambda kv: kv[1], reverse=True))
-        utils.write_file("log/data/train_last_tool_freq.txt", sorted_dict)
+        utils.write_dictionary("log/data/train_last_tool_freq.txt", sorted_dict)
         return sorted_dict
 
     def get_toolid_samples(self, train_data, l_tool_freq):
@@ -315,13 +315,13 @@ class PrepareData:
         class_weights = self.assign_class_weights(num_classes, t_pred_usage)
 
         print("Saving datasets...")
-        utils.write_file("log/data/rev_dict.txt", rev_dict)
-        utils.write_file("log/data/f_dict.txt", dictionary)
-        utils.write_file("log/data/compatible_tools.txt", compatible_tools)
-        utils.write_file("log/data/published_connections.txt", standard_connections)
+        utils.write_dictionary("log/data/rev_dict.txt", rev_dict)
+        utils.write_dictionary("log/data/f_dict.txt", dictionary)
+        utils.write_dictionary("log/data/compatible_tools.txt", compatible_tools)
+        utils.write_dictionary("log/data/published_connections.txt", standard_connections)
         utils.save_h5_data(train_data, train_labels, "log/saved_data/train.h5")
         utils.save_h5_data(test_data, test_labels, "log/saved_data/test.h5")
-        utils.write_file("log/data/all_paths.txt", all_paths)
-        utils.write_file("log/data/class_weights.txt", class_weights)
+        utils.write_dictionary("log/data/all_paths.txt", all_paths)
+        utils.write_dictionary("log/data/class_weights.txt", class_weights)
 
         return train_data, train_labels, test_data, test_labels, dictionary, rev_dict, class_weights, compatible_tools, tr_tool_freq

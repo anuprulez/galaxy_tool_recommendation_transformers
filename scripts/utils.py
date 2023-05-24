@@ -28,6 +28,15 @@ def read_file(file_path):
     with open(file_path, "r") as json_file:
         file_content = json.loads(json_file.read())
     return file_content
+    
+
+def write_dictionary(file_path, content):
+    """
+    Write a file
+    """
+    remove_file(file_path)
+    with open(file_path, "w") as json_file:
+        json_file.write(json.dumps(content))
 
 
 def write_file(file_path, content):
@@ -40,17 +49,15 @@ def write_file(file_path, content):
         with open(file_path, "r") as r_file:
             e_content = r_file.read()
             e_content = e_content.strip()
-            try:
-                e_content = json.loads(e_content)
-            except:
-                pass
-            e_content = e_content.split(",")
+            
     with open(file_path, "w") as json_file:
         if e_content != None:
-            e_content.extend(content)
+            e_content = e_content.split(",")
+            e_content.append(str(content))
             json_file.write(",".join([str(item) for item in e_content]))
         else:
-            json_file.write(",".join([str(item) for item in content]))
+            json_file.write(",".join([str(content)])) 
+
     
 def save_h5_data(inp, tar, filename):
     hf_file = h5py.File(filename, 'w')

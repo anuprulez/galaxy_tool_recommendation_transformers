@@ -55,10 +55,11 @@ ff_dim = 128 # Hidden layer size in feed forward network inside transformer # df
 dropout = 0.1
 seq_len = 25
 
-model_type = "dnn" # ["transformer, "rnn", "dnn", "cnn"]
+model_type = "transformer" # ["transformer, "rnn", "dnn", "cnn"]
 
 if model_type == "rnn":
-    base_path = "log_19_09_22_GPU_RNN_full_data/"
+    base_path = "log_rnn/"
+    #"log_19_09_22_GPU_RNN_full_data/"
     #"log_19_09_22_GPU_RNN_full_data/"
     #"/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/tool_prediction_datasets/computed_results/aug_22 data/rnn/run2/" #"log_19_09_22_GPU_RNN_full_data/" #"log_22_08_22_rnn/" #"log_08_08_22_rnn/"
 elif model_type == "cnn":
@@ -103,7 +104,7 @@ elif model_type == "dnn":
 
 #tr_pos_plot = [1000, 5000, 10000, 20000, 30000, 40000]
 
-model_number = 80
+model_number = 30
 model_path = base_path + "saved_model/" + str(model_number) + "/tf_model/"
 model_path_h5 = base_path + "saved_model/" + str(model_number) + "/tf_model_h5/"
 
@@ -551,7 +552,8 @@ def read_model():
     m_l_time = m_load_e_time - m_load_s_time
     r_dict = utils.read_saved_file(base_path + "data/rev_dict.txt")
     f_dict = utils.read_saved_file(base_path + "data/f_dict.txt")
-    c_weights = utils.read_saved_file(base_path + "data/class_weights.txt")
+    c_weights = utils.read_file(base_path + "data/class_weights.txt")
+    print(read_saved_file)
     c_tools = utils.read_saved_file(base_path + "data/compatible_tools.txt")
     s_conn = utils.read_saved_file(base_path + "data/published_connections.txt")
 
@@ -607,9 +609,9 @@ def predict_seq():
         tf_loaded_model = tf.saved_model.load(model_path)
         m_load_e_time = time.time()
         model_loading_time = m_load_e_time - m_load_s_time
-        r_dict = utils.read_saved_file(base_path + "data/rev_dict.txt")
-        f_dict = utils.read_saved_file(base_path + "data/f_dict.txt")
-        class_weights = utils.read_saved_file(base_path + "data/class_weights.txt")
+        r_dict = utils.read_file(base_path + "data/rev_dict.txt")
+        f_dict = utils.read_file(base_path + "data/f_dict.txt")
+        class_weights = utils.read_file(base_path + "data/class_weights.txt")
         compatible_tools = utils.read_saved_file(base_path + "data/compatible_tools.txt")
         published_connections = utils.read_saved_file(base_path + "data/published_connections.txt")
     else: 
@@ -648,8 +650,6 @@ def predict_seq():
         #print(te_x_batch, te_x_mask.shape)
         #model([x_train, att_mask], training=True)
         pred_s_time = time.time()
-        
-        tf_loaded_model.summary()
         
         if model_type in ["cnn", "rnn", "dnn"]:
             te_prediction = tf_loaded_model(te_x_batch, training=False)

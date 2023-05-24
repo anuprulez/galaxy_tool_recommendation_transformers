@@ -75,6 +75,7 @@ def create_dnn_architecture(train_data, train_labels, test_data, test_labels, f_
     epo_low_te_precision = list()
 
     te_lowest_t_ids = utils.get_low_freq_te_samples(test_data, test_labels, tr_t_freq)
+    utils.write_file(base_path + "data/te_lowest_t_ids.txt", ",".join([str(item) for item in te_lowest_t_ids]))
     tr_log_step = config["tr_logging_step"]
     te_log_step = config["te_logging_step"]
     n_train_steps = config["n_train_iter"]
@@ -107,6 +108,11 @@ def create_dnn_architecture(train_data, train_labels, test_data, test_labels, f_
             epo_te_batch_categorical_loss.append(test_cat_loss)
             epo_te_precision.append(te_prec)
             epo_low_te_precision.append(low_te_prec)
+            utils.write_file(base_path + "data/epo_te_batch_loss.txt", te_loss)
+            utils.write_file(base_path + "data/epo_te_batch_acc.txt", te_acc)
+            utils.write_file(base_path + "data/epo_te_batch_categorical_loss.txt", test_cat_loss)
+            utils.write_file(base_path + "data/epo_te_precision.txt", te_prec)
+            utils.write_file(base_path + "data/epo_low_te_precision.txt", low_te_prec)
         print()
         if (batch_index+1) % tr_log_step == 0:
             print("Saving model at training step {}/{}".format(batch_index + 1, n_train_steps))
@@ -119,31 +125,9 @@ def create_dnn_architecture(train_data, train_labels, test_data, test_labels, f_
                 os.mkdir(tf_model_save_h5)
             tf.saved_model.save(model, tf_model_save)
             utils.save_model_file(tf_model_save_h5, model, r_dict, c_wts, c_tools, pub_conn)
+            utils.write_file(base_path + "data/epo_tr_batch_loss.txt", tr_loss.numpy())
+            utils.write_file(base_path + "data/epo_tr_batch_acc.txt", tr_acc.numpy())
+            utils.write_file(base_path + "data/epo_tr_batch_categorical_loss.txt", tr_cat_loss.numpy())
         batch_index += 1
         if batch_index > n_train_steps - 1:
             break
-    new_dict = dict()
-    for k in u_tr_y_labels_dict:
-        new_dict[str(k)] = ",".join([str(item) for item in u_tr_y_labels_dict[k]])
-        
-    utils.write_file(base_path + "data/epo_tr_batch_loss.txt", [str(item) for item in epo_tr_batch_loss])
-    utils.write_file(base_path + "data/epo_tr_batch_acc.txt", [str(item) for item in epo_tr_batch_acc])
-    utils.write_file(base_path + "data/epo_te_batch_loss.txt", [str(item) for item in epo_te_batch_loss])
-    utils.write_file(base_path + "data/epo_te_batch_acc.txt", [str(item) for item in epo_te_batch_acc])
-    utils.write_file(base_path + "data/epo_tr_batch_categorical_loss.txt", [str(item) for item in epo_tr_batch_categorical_loss])
-    utils.write_file(base_path + "data/epo_te_batch_categorical_loss.txt", [str(item) for item in epo_te_batch_categorical_loss])
-    utils.write_file(base_path + "data/epo_te_precision.txt", [str(item) for item in epo_te_precision])
-    utils.write_file(base_path + "data/epo_low_te_precision.txt", [str(item) for item in epo_low_te_precision])
-    utils.write_file(base_path + "data/te_lowest_t_ids.txt", [str(item) for item in te_lowest_t_ids])
-    
-    '''utils.write_file(base_path + "data/epo_tr_batch_loss.txt", ",".join([str(item) for item in epo_tr_batch_loss]))
-    utils.write_file(base_path + "data/epo_tr_batch_acc.txt", ",".join([str(item) for item in epo_tr_batch_acc]))
-    utils.write_file(base_path + "data/epo_te_batch_loss.txt", ",".join([str(item) for item in epo_te_batch_loss]))
-    utils.write_file(base_path + "data/epo_te_batch_acc.txt", ",".join([str(item) for item in epo_te_batch_acc]))
-    utils.write_file(base_path + "data/epo_tr_batch_categorical_loss.txt", ",".join([str(item) for item in epo_tr_batch_categorical_loss]))
-    utils.write_file(base_path + "data/epo_te_batch_categorical_loss.txt", ",".join([str(item) for item in epo_te_batch_categorical_loss]))
-    utils.write_file(base_path + "data/epo_te_precision.txt", ",".join([str(item) for item in epo_te_precision]))
-    utils.write_file(base_path + "data/all_sel_tool_ids.txt", ",".join([str(item) for item in all_sel_tool_ids]))
-    utils.write_file(base_path + "data/epo_low_te_precision.txt", ",".join([str(item) for item in epo_low_te_precision]))
-    utils.write_file(base_path + "data/u_tr_y_labels_dict.txt", new_dict)
-    utils.write_file(base_path + "data/te_lowest_t_ids.txt", ",".join([str(item) for item in te_lowest_t_ids]))'''
