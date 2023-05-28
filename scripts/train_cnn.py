@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import Dropout, Embedding, Input, Dense, GRU
 from tensorflow.keras.models import Model, Sequential
-from tensorflow.keras.layers import Conv1D, Conv2D, MaxPooling2D, Flatten, Lambda, GlobalMaxPooling1D
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Lambda
 from tensorflow.keras.models import Model
 
 import utils

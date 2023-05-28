@@ -47,7 +47,6 @@ def find_wf_statistics(unique_paths):
     utils.write_dictionary("data/aug_22/freq_tool.txt", s_freq_tool)
     
     df_freq_tools.to_csv("data/aug_22/df_freq_tools.csv", sep=",", index=None)
-    
 
 
 if __name__ == "__main__":

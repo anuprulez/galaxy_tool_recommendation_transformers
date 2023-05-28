@@ -64,6 +64,9 @@ def create_rnn_architecture(train_data, train_labels, test_data, test_labels, f_
     enc_optimizer = tf.keras.optimizers.Adam(learning_rate=config["learning_rate"])
 
     model = create_model(vocab_size, config)
+    
+    model.summary()
+    
     prev_model_number = config["restart_step"]
     if prev_model_number > 0:
         model_path_h5 = model_path + str(prev_model_number) + "/tf_model_h5/model.h5"

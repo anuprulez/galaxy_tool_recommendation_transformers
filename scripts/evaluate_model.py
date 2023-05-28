@@ -66,7 +66,7 @@ elif model_type == "cnn":
     base_path = "log_cnn/"
     
 elif model_type == "transformer":
-    base_path = "log_transformer/"
+    base_path = "log/"
     
 elif model_type == "dnn":
     base_path = "log_dnn/"
@@ -104,7 +104,7 @@ elif model_type == "dnn":
 
 #tr_pos_plot = [1000, 5000, 10000, 20000, 30000, 40000]
 
-model_number = 30
+model_number = 40
 model_path = base_path + "saved_model/" + str(model_number) + "/tf_model/"
 model_path_h5 = base_path + "saved_model/" + str(model_number) + "/tf_model_h5/"
 
@@ -564,7 +564,7 @@ def plot_TSNE(embed, labels):
     print("Plotting embedding...")
     print(labels)
 
-    #perplexity = 50
+    #perplexity = 500.14460978835978835
     n_colors = 10
     figsize = (8, 8)
 
