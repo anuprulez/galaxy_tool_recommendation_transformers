@@ -96,13 +96,27 @@ elif model_type == "dnn":
 
 ## RNN
 ## GPU: 40,000 steps, batch size: 512 - 129000 seconds
-## CPU: 40 steps, batch size: 512 - 193863 seconds
+## CPU: 40,000 steps, batch size: 512 - 193863 seconds
 
 #"log_03_08_22_1/" Balanced data with really selection of low freq tools - random choice
 # RNN: log_01_08_22_3_rnn
 # Transformer: log_01_08_22_0
 
+#CNN 1
+
+#Saving model at training step 40000/40000
+#WARNING:absl:Found untraced functions such as _jit_compiled_convolution_op while saving (showing 1 of 1). These functions will not be directly callable after loading.
+
+#CPU: Program finished in 211880.3916196823 seconds
+
 #tr_pos_plot = [1000, 5000, 10000, 20000, 30000, 40000]
+
+# DNN
+# Saving model at training step 40000/40000
+
+# CPU: Program finished in 177232.39850640297 seconds
+
+
 
 model_number = 40
 model_path = base_path + "saved_model/" + str(model_number) + "/tf_model/"
