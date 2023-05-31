@@ -45,7 +45,7 @@ font = {'family': 'serif', 'size': 8}
 plt.rc('font', **font)
 
 batch_size = 10
-test_batches = 10
+test_batches = 0
 n_topk = 1
 max_seq_len = 25
 
@@ -63,13 +63,13 @@ if model_type == "rnn":
     #"log_19_09_22_GPU_RNN_full_data/"
     #"/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/tool_prediction_datasets/computed_results/aug_22 data/rnn/run2/" #"log_19_09_22_GPU_RNN_full_data/" #"log_22_08_22_rnn/" #"log_08_08_22_rnn/"
 elif model_type == "cnn":
-    base_path = "log_cnn/"
+    base_path = "/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/backup_tool_pred_transformer_computed_results/aug_22_data/cnn_full_data/" #"log_cnn/"
     
 elif model_type == "transformer":
-    base_path = "log/"
+    base_path = "/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/backup_tool_pred_transformer_computed_results/aug_22_data/log_19_09_22_GPU_transformer_full_data/"
     
 elif model_type == "dnn":
-    base_path = "log_dnn/"
+    base_path = "/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/backup_tool_pred_transformer_computed_results/aug_22_data/dnn_full_data/"
     
 #"/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/tool_prediction_datasets/computed_results/aug_22 data/transformer/run2/"
 #"log_19_09_22_GPU_transformer_full_data/" #"log_12_09_22_GPU/" #"log_19_09_22_GPU_transformer_full_data/" 
@@ -92,11 +92,20 @@ elif model_type == "dnn":
 
 ## Transformer
 ## GPU: 40,000 steps, batch size: 512 - 132505.20160245895 seconds
-## CPU: 40 steps, batch  size: 512 - 158683 seconds
+## CPU: 40,000 steps, batch  size: 512 - 158683 seconds
+
+## New CPU: Saving model at training step 400/400
+## 400 steps: Program finished in 1742.0802121162415 seconds
+
 
 ## RNN
 ## GPU: 40,000 steps, batch size: 512 - 129000 seconds
 ## CPU: 40,000 steps, batch size: 512 - 193863 seconds
+
+
+## New CPU: 400 Saving model at training step 400/400
+
+### 400 steps Program finished in 2656.933450937271 seconds
 
 #"log_03_08_22_1/" Balanced data with really selection of low freq tools - random choice
 # RNN: log_01_08_22_3_rnn
@@ -109,6 +118,14 @@ elif model_type == "dnn":
 
 #CPU: Program finished in 211880.3916196823 seconds
 
+### CNN 2
+
+# CPU: Program finished in 206890.36703562737 seconds
+
+### CNN Full data
+
+# CPU: Program finished in 230368.01805138588 seconds
+
 #tr_pos_plot = [1000, 5000, 10000, 20000, 30000, 40000]
 
 # DNN
@@ -116,9 +133,19 @@ elif model_type == "dnn":
 
 # CPU: Program finished in 177232.39850640297 seconds
 
+## DNN 2
+
+# Program finished in 181519.5743496418 seconds
+
+### DNN full
+
+# Saving model at training step 40000/40000
+
+# CPU: Program finished in 209876.5223982334 seconds
 
 
-model_number = 40
+
+model_number = 40000
 model_path = base_path + "saved_model/" + str(model_number) + "/tf_model/"
 model_path_h5 = base_path + "saved_model/" + str(model_number) + "/tf_model_h5/"
 
@@ -596,7 +623,7 @@ def plot_TSNE(embed, labels):
 
 def predict_seq():
 
-    visualize_loss_acc()  
+    #visualize_loss_acc()  
 
     #sys.exit()
 
@@ -768,7 +795,7 @@ def predict_seq():
     #import sys
     #sys.exit()
     
-    te_lowest_t_ids = utils.read_saved_file(base_path + "data/te_lowest_t_ids.txt")
+    '''te_lowest_t_ids = utils.read_saved_file(base_path + "data/te_lowest_t_ids.txt")
     lowest_t_ids = [int(item) for item in te_lowest_t_ids.split(",")]
     print(lowest_t_ids)
     lowest_t_ids = lowest_t_ids[:5]
@@ -797,7 +824,7 @@ def predict_seq():
     print("Time taken to predict tools: {} seconds".format(low_diff_pred_t))
 
     for i, (low_inp, low_tar) in enumerate(zip(low_te_data, low_te_labels)):
-        '''pred_s_time = time.time()
+        pred_s_time = time.time()
         if predict_rnn is True:
             low_prediction = tf_loaded_model([low_inp], training=False)
         else:
@@ -806,7 +833,7 @@ def predict_seq():
         pred_e_time = time.time()
         low_diff_pred_t = pred_e_time - pred_s_time
         low_te_pred_time.append(low_diff_pred_t)
-        print("Time taken to predict tools: {} seconds".format(low_diff_pred_t))'''
+        print("Time taken to predict tools: {} seconds".format(low_diff_pred_t))
         low_prediction = bat_low_prediction[i]
         low_tar = low_te_labels[i]
         low_label_pos = np.where(low_tar > 0)[0]
@@ -833,9 +860,9 @@ def predict_seq():
        
         print("-----------------")
         print()
-        '''if predict_rnn is False:
+        if predict_rnn is False:
             i_names = ",".join([r_dict[str(int(item))] for item in low_inp[low_inp_pos]])
-            generated_attention(att_weights[i], i_names, f_dict, r_dict)'''
+            generated_attention(att_weights[i], i_names, f_dict, r_dict)
 
     if test_batches > 0:
         print("Batch Precision@{}: {}".format(n_topk, np.mean(precision)))
@@ -851,13 +878,13 @@ def predict_seq():
         print("Low: test average prediction time: {}".format(np.mean(low_te_pred_time)))
         print()
         
-    sys.exit()
+    #sys.exit()
     print("----------------------------")
     print()
     print("Predicting for individual sequences...")
     print()
     #print("Low precision on labels: {}".format(error_label_tools))
-    #print("Low precision on labels: {}, # tools: {}".format(list(set(error_label_tools)), len(list(set(error_label_tools)))))
+    #print("Low precision on labels: {}, # tools: {}".format(list(set(error_label_tools)), len(list(set(error_label_tools)))))'''
     # individual tools or seq prediction
     '''print()
     n_topk_ind = 20
@@ -875,9 +902,9 @@ def predict_seq():
     t_ip[2] = int(f_dict["hicexplorer_hicfindtads"])
     t_ip[3] = int(f_dict["hicexplorer_hicpca"])'''
 
-    t_ip[0, 0] = int(f_dict["mass_spectrometry_imaging_filtering"]) #ivar_covid_aries_consensus
-    t_ip[0, 1] = int(f_dict["cardinal_preprocessing"])
-    t_ip[0, 2] = int(f_dict["cardinal_segmentations"])
+    t_ip[0, 0] = int(f_dict["keras_train_and_eval"]) #ivar_covid_aries_consensus
+    #t_ip[0, 1] = int(f_dict["cardinal_preprocessing"])
+    #t_ip[0, 2] = int(f_dict["cardinal_segmentations"])
     #t_ip[0, 3] = int(f_dict["heinz"])
 
     #t_ip[4] = int(f_dict["prokka"])
@@ -887,7 +914,12 @@ def predict_seq():
     #t_ip[8] = int(f_dict["anndata_manipulate"])
     # 'snpEff_build_gb', 'bwa_mem', 'samtools_view', snpeff_sars_cov_2
     
-    last_tool_name = "cardinal_segmentations"
+    # 1. snpeff_sars_cov_2
+    # 2. anndata_import
+    # 3. keras_train_and_eval
+    # 4. cardinal_preprocessing, cardinal_segmentations, mass_spectrometry_imaging_filtering
+    
+    last_tool_name = "keras_train_and_eval"
     
     t_ip = tf.convert_to_tensor(t_ip, dtype=tf.int64)
     t_ip = tf.cast(t_ip, dtype=tf.float32)
@@ -899,8 +931,8 @@ def predict_seq():
         #t_ip_mask = utils.create_padding_mask(t_ip)
         #t_ip_mask = tf.cast(t_ip_mask, dtype=tf.float32)
         #prediction, att_weights = tf_loaded_model([t_ip, t_ip_mask], training=False)
-        prediction, att_weights = tf_loaded_model(t_ip, training=False)
-        print(prediction.shape, att_weights.shape)
+        embed, prediction, att_weights = tf_loaded_model(t_ip, training=False)
+        print(embed.shape, prediction.shape, att_weights.shape)
     pred_e_time = time.time()
     print("Time taken to predict tools: {} seconds".format(pred_e_time - pred_s_time))
     prediction_cwts = tf.math.multiply(c_weights, prediction)

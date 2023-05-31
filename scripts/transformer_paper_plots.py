@@ -43,10 +43,12 @@ seq_len = 25
 
 
 base_path = "/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/backup_tool_pred_transformer_computed_results/aug_22_data/"
+#"/media/anupkumar/6c9b94c9-2316-4ae1-887a-5047a02bc3d7/home/kumara/tool_prediction_compute_results/backup_tool_pred_transformer_computed_results/aug_22_data/"
+#"/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/backup_tool_pred_transformer_computed_results/aug_22_data/"
 #"/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/tool_prediction_datasets/computed_results/aug_22 data/"
 #"/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/backup_tool_pred_transformer_computed_results/aug_22_data/"
 #"/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/tool_prediction_datasets/computed_results/aug_22 data/"
-n_runs = 3
+n_runs = 5
 
 
 def read_file_cnn_dnn(file_path):
@@ -66,7 +68,7 @@ def collect_loss_prec_data(m_type):
     print(m_path)
     runs_indices = list()
     runs_te_loss = list()
-    model_numbers = [1, 100, 200, 500, 1000, 1200, 1500, 2000, 2500, 3000, 3500] #, 1500, 2000, 2500, 3000, 3500
+    model_numbers = [1, 100, 200, 500, 1000, 1200, 1500, 2000, 2500, 3000, 3500, 4000] #, 1500, 2000, 2500, 3000, 3500
     fig = plt.figure(figsize=fig_size)
     ## Transformer: For test loss
     for i in range(n_runs):
@@ -164,10 +166,9 @@ def collect_loss_prec_data(m_type):
        dnn_low_te_precision = dnn_low_te_precision[model_numbers]
        dnn_runs_te_prec_low.extend(dnn_low_te_precision)
 
-
-    df_tr_rnn_cnn_dnn_runs_te_prec = pd.DataFrame(zip(runs_indices, transformer_runs_te_prec, rnn_runs_te_prec, cnn_runs_te_prec, dnn_runs_te_prec, transformer_runs_te_prec_low, rnn_runs_te_prec_low, cnn_runs_te_prec_low, dnn_runs_te_prec_low), columns=["indices", "tran_prec", "rnn_prec", "cnn_prec", "dnn_prec", "transformer_runs_te_prec_low", "rnn_runs_te_prec_low", "cnn_runs_te_prec_low", "dnn_runs_te_prec_low"])
-
-    print(df_tr_rnn_cnn_dnn_runs_te_prec)
+    # precision
+    df_tr_rnn_cnn_dnn_runs_te_prec = pd.DataFrame(zip(runs_indices, transformer_runs_te_prec, rnn_runs_te_prec, cnn_runs_te_prec, dnn_runs_te_prec), columns=["indices", "tran_prec", "rnn_prec", "cnn_prec", "dnn_prec"])
+    
     
     df_tr_rnn_cnn_dnn_runs_te_prec.to_csv("plots/df_tr_rnn_cnn_dnn_runs_te_prec.csv", index=None, sep="\t")
 
@@ -176,17 +177,35 @@ def collect_loss_prec_data(m_type):
     sns.lineplot(data=df_tr_rnn_cnn_dnn_runs_te_prec, x="indices", y="cnn_prec", label="CNN: test tools", color="blue", linestyle="-")
     sns.lineplot(data=df_tr_rnn_cnn_dnn_runs_te_prec, x="indices", y="dnn_prec", label="DNN: test tools", color="black", linestyle="-")
     
-    sns.lineplot(data=df_tr_rnn_cnn_dnn_runs_te_prec, x="indices", y="transformer_runs_te_prec_low", label="Transformer: lowest 25% test tools", color="green", linestyle=":")
-    sns.lineplot(data=df_tr_rnn_cnn_dnn_runs_te_prec, x="indices", y="rnn_runs_te_prec_low", label="RNN (GRU): lowest 25% test tools", color="red", linestyle=":")
-    sns.lineplot(data=df_tr_rnn_cnn_dnn_runs_te_prec, x="indices", y="cnn_runs_te_prec_low", label="CNN: lowest 25% test tools", color="blue", linestyle=":")
-    sns.lineplot(data=df_tr_rnn_cnn_dnn_runs_te_prec, x="indices", y="dnn_runs_te_prec_low", label="DNN: lowest 25% test tools", color="black", linestyle=":")
+    plt.grid(True)
+    plt.xlabel("Training iteration")
+    plt.ylabel("Precision@k")
+    plt.title("Test: precision@k")
+    
+    plt.savefig("plots/df_tr_rnn_cnn_dnn_runs_te_prec.pdf", dpi=150, bbox_inches='tight')
+    plt.show()
+    
+    # with low precision
+    df_tr_rnn_cnn_dnn_runs_te_prec_low_prec = pd.DataFrame(zip(runs_indices, transformer_runs_te_prec, rnn_runs_te_prec, cnn_runs_te_prec, dnn_runs_te_prec, transformer_runs_te_prec_low, rnn_runs_te_prec_low, cnn_runs_te_prec_low, dnn_runs_te_prec_low), columns=["indices", "tran_prec", "rnn_prec", "cnn_prec", "dnn_prec", "transformer_runs_te_prec_low", "rnn_runs_te_prec_low", "cnn_runs_te_prec_low", "dnn_runs_te_prec_low"])
+    
+    df_tr_rnn_cnn_dnn_runs_te_prec_low_prec.to_csv("plots/df_tr_rnn_cnn_dnn_runs_te_prec_low_prec.csv", index=None, sep="\t")
+
+    sns.lineplot(data=df_tr_rnn_cnn_dnn_runs_te_prec_low_prec, x="indices", y="tran_prec", label="Transformer: test tools", color="green", linestyle="-")
+    sns.lineplot(data=df_tr_rnn_cnn_dnn_runs_te_prec_low_prec, x="indices", y="rnn_prec", label="RNN (GRU): test tools", color="red", linestyle="-")
+    sns.lineplot(data=df_tr_rnn_cnn_dnn_runs_te_prec_low_prec, x="indices", y="cnn_prec", label="CNN: test tools", color="blue", linestyle="-")
+    sns.lineplot(data=df_tr_rnn_cnn_dnn_runs_te_prec_low_prec, x="indices", y="dnn_prec", label="DNN: test tools", color="black", linestyle="-")
+    
+    sns.lineplot(data=df_tr_rnn_cnn_dnn_runs_te_prec_low_prec, x="indices", y="transformer_runs_te_prec_low", label="Transformer: lowest 25% test tools", color="green", linestyle=":")
+    sns.lineplot(data=df_tr_rnn_cnn_dnn_runs_te_prec_low_prec, x="indices", y="rnn_runs_te_prec_low", label="RNN (GRU): lowest 25% test tools", color="red", linestyle=":")
+    sns.lineplot(data=df_tr_rnn_cnn_dnn_runs_te_prec_low_prec, x="indices", y="cnn_runs_te_prec_low", label="CNN: lowest 25% test tools", color="blue", linestyle=":")
+    sns.lineplot(data=df_tr_rnn_cnn_dnn_runs_te_prec_low_prec, x="indices", y="dnn_runs_te_prec_low", label="DNN: lowest 25% test tools", color="black", linestyle=":")
     
     plt.grid(True)
     plt.xlabel("Training iteration")
     plt.ylabel("Precision@k")
     plt.title("Test: precision@k")
     
-    plt.savefig("plots/transformer_rnn_cnn_dnn_runs_te_low_prec.pdf", dpi=150)
+    plt.savefig("plots/df_tr_rnn_cnn_dnn_runs_te_prec_low_prec.pdf", dpi=150, bbox_inches='tight')
     plt.show()
 
 
@@ -344,7 +363,7 @@ def plot_model_vs_load_time():
     plt.xlabel("Training step")
     plt.ylabel("Model load time (seconds)")
     plt.title("Transformer, RNN (GRU), CNN and DNN models loading time")
-    plt.savefig("plots/transformer_rnn_runs_model_load_time.pdf", dpi=150)
+    plt.savefig("plots/transformer_rnn_runs_model_load_time.pdf", dpi=150, bbox_inches='tight')
     plt.show()
 
 
@@ -497,7 +516,7 @@ def plot_usage_time_vs_seq_len():
 
 ############ Call methods ###########################
 
-collect_loss_prec_data(["transformer", "rnn", "cnn", "dnn"])
+#collect_loss_prec_data(["transformer", "rnn", "cnn", "dnn"])
 plot_model_vs_load_time()
 #plot_usage_time_vs_topk()
 #plot_usage_time_vs_seq_len()

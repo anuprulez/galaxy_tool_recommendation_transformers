@@ -34,7 +34,7 @@ def create_model(vocab_size, config):
     seq_len = config["maximum_path_length"]
     
     model = Sequential()
-    model.add(Embedding(vocab_size+1, dnn_units, input_length=seq_len))
+    model.add(Embedding(vocab_size, dnn_units, input_length=seq_len, mask_zero=True))
     model.add(SpatialDropout1D(dropout))
     model.add(Flatten())
     model.add(Dense(dnn_units, input_shape=(seq_len,), activation="elu"))

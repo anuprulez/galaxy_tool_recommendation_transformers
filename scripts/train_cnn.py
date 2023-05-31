@@ -35,7 +35,7 @@ def create_model(vocab_size, config):
     dropout = config["dropout"]
     
     model = Sequential()
-    model.add(Embedding(vocab_size+1, cnn_units, input_length=config["maximum_path_length"]))
+    model.add(Embedding(vocab_size, cnn_units, input_length=config["maximum_path_length"], mask_zero=True))
     model.add(Lambda(lambda x: tf.expand_dims(x, 3)))
     model.add(Conv2D(cnn_units, kernel_size=(16, 3), activation = 'relu', kernel_initializer='he_normal', padding = 'VALID'))
     model.add(Dropout(dropout))
