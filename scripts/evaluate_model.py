@@ -44,7 +44,7 @@ fig_size = (15, 15)
 font = {'family': 'serif', 'size': 8}
 plt.rc('font', **font)
 
-batch_size = 10
+batch_size = 1000
 test_batches = 0
 n_topk = 1
 max_seq_len = 25
@@ -52,7 +52,7 @@ max_seq_len = 25
 embed_dim = 128 # Embedding size for each token d_model
 num_heads = 4 # Number of attention heads
 ff_dim = 128 # Hidden layer size in feed forward network inside transformer # dff
-dropout = 0.1
+dropout = 0.2
 seq_len = 25
 
 model_type = "transformer" # ["transformer, "rnn", "dnn", "cnn"]
@@ -66,7 +66,9 @@ elif model_type == "cnn":
     base_path = "/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/backup_tool_pred_transformer_computed_results/aug_22_data/cnn_full_data/" #"log_cnn/"
     
 elif model_type == "transformer":
-    base_path = "/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/backup_tool_pred_transformer_computed_results/aug_22_data/log_19_09_22_GPU_transformer_full_data/"
+    base_path = "/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/backup_tool_pred_transformer_computed_results/aug_22_data/transformer/run2/"
+    #"/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/backup_tool_pred_transformer_computed_results/aug_22_data/log_19_09_22_GPU_transformer_full_data/"
+    #"/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/backup_tool_pred_transformer_computed_results/aug_22_data/transformer/run1/"
     
 elif model_type == "dnn":
     base_path = "/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/backup_tool_pred_transformer_computed_results/aug_22_data/dnn_full_data/"
@@ -531,16 +533,6 @@ def create_cnn_model(seq_len, vocab_size):
     
     
 def create_dnn_model(seq_len, vocab_size):
-
-    '''model = Sequential()
-    model.add(Embedding(vocab_size+1, embed_dim, input_length=seq_len))
-    model.add(SpatialDropout1D(dropout))
-    model.add(Flatten())
-    model.add(Dense(embed_dim, input_shape=(seq_len,), activation="elu"))
-    model.add(Dropout(dropout))
-    model.add(Dense(embed_dim, activation="elu"))
-    model.add(Dropout(dropout))
-    model.add(Dense(vocab_size, activation="sigmoid"))'''
     
     model = Sequential()
     model.add(Embedding(vocab_size+1, embed_dim, input_length=seq_len))
@@ -635,7 +627,7 @@ def predict_seq():
     #tool_tr_freq = utils.read_file(base_path + "data/all_sel_tool_ids.txt")
     #verify_training_sampling(tool_tr_freq, r_dict)  
 
-    path_test_data = base_path + "saved_data/test.h5"
+    '''path_test_data = base_path + "saved_data/test.h5"
     
     print(path_test_data)
 
@@ -645,7 +637,7 @@ def predict_seq():
     test_input = np.array(file_obj["input"])
     test_target = np.array(file_obj["target"])
 
-    print(test_input.shape, test_target.shape)
+    print(test_input.shape, test_target.shape)'''
 
     if model_type == "rnn":
         print(model_path)
@@ -670,7 +662,7 @@ def predict_seq():
 
     c_weights = tf.convert_to_tensor(c_weights, dtype=tf.float32)
 
-    u_te_y_labels, u_te_y_labels_dict = get_u_tr_labels(test_target)
+    #u_te_y_labels, u_te_y_labels_dict = get_u_tr_labels(test_target)
 
     precision = list()
     pub_prec_list = list()
@@ -680,11 +672,11 @@ def predict_seq():
     batch_pred_time = list()
     for j in range(test_batches):
 
-        te_x_batch, y_train_batch, selected_label_tools, bat_ind = sample_balanced_tr_y(test_input, test_target, u_te_y_labels_dict)
+        #te_x_batch, y_train_batch, selected_label_tools, bat_ind = sample_balanced_tr_y(test_input, test_target, u_te_y_labels_dict)
 
-        #print(j * batch_size, j * batch_size + batch_size)
-        #te_x_batch = test_input[j * batch_size : j * batch_size + batch_size, :]
-        #y_train_batch = test_target[j * batch_size : j * batch_size + batch_size, :]
+        print(j * batch_size, j * batch_size + batch_size)
+        te_x_batch = test_input[j * batch_size : j * batch_size + batch_size, :]
+        y_train_batch = test_target[j * batch_size : j * batch_size + batch_size, :]
 
         #te_x_batch = tf.convert_to_tensor(te_x_batch, dtype=tf.int64)
         #te_x_mask = utils.create_padding_mask(te_x_batch)
@@ -787,13 +779,10 @@ def predict_seq():
                     #error_label_tools.append(select_tools[i])
                     print("=========================")
                 print("--------------------------")
-                #generated_attention(att_weights[i], i_names, f_dict, r_dict)
+                generated_attention(att_weights[i], i_names, f_dict, r_dict)
                 #plot_attention_head_axes(att_weights)
                 print("Batch {} prediction finished ...".format(j+1))
-    #print(filter_embed_label_names)
-    #plot_TSNE(np.array(filter_embed), filter_embed_label_names)
-    
-    #print(list(set(filter_embed_label_names)))
+
     
     #import sys
     #sys.exit()
@@ -905,9 +894,46 @@ def predict_seq():
     t_ip[2] = int(f_dict["hicexplorer_hicfindtads"])
     t_ip[3] = int(f_dict["hicexplorer_hicpca"])'''
 
-    t_ip[0, 0] = int(f_dict["keras_train_and_eval"]) #ivar_covid_aries_consensus
-    #t_ip[0, 1] = int(f_dict["cardinal_preprocessing"])
-    #t_ip[0, 2] = int(f_dict["cardinal_segmentations"])
+    ### To generate figure 4 - Transformer repo, run 2, head 1
+    '''t_ip[0, 0] = int(f_dict["ctb_online_data_fetch"])
+    t_ip[0, 1] = int(f_dict["ctb_change_title"])
+    t_ip[0, 2] = int(f_dict["ctb_remDuplicates"])
+    t_ip[0, 3] = int(f_dict["ctb_remIons"]) 
+    t_ip[0, 4] = int(f_dict["ctb_compound_convert"])
+    t_ip[0, 5] = int(f_dict["Show beginning1"])
+    t_ip[0, 6] = int(f_dict["ctb_ob_genProp"])'''
+    
+    ### To generate figure 5 - Transformer repo, run 2, head 1
+    '''t_ip[0, 0] = int(f_dict["trimmomatic"])
+    t_ip[0, 1] = int(f_dict["hisat2"])
+    t_ip[0, 2] = int(f_dict["featurecounts"])
+    t_ip[0, 3] = int(f_dict["deseq2"]) 
+    t_ip[0, 4] = int(f_dict["Filter1"])
+    t_ip[0, 5] = int(f_dict["Grep1"])
+    t_ip[0, 6] = int(f_dict["Add_a_column1"])
+    t_ip[0, 7] = int(f_dict["table_compute"])
+    t_ip[0, 8] = int(f_dict["tp_cut_tool"])
+    t_ip[0, 9] = int(f_dict["join1"])
+    t_ip[0, 10] = int(f_dict["tp_replace_in_column"])
+    t_ip[0, 11] = int(f_dict["tp_cat"])'''
+    
+    ### To generate additional figure 5 - Transformer repo, run 2, head 1
+    '''t_ip[0, 0] = int(f_dict["bowtie2"])
+    t_ip[0, 1] = int(f_dict["hicexplorer_hicbuildmatrix"])
+    t_ip[0, 2] = int(f_dict["hicexplorer_chicqualitycontrol"])
+    t_ip[0, 3] = int(f_dict["hicexplorer_chicviewpointbackgroundmodel"]) 
+    t_ip[0, 4] = int(f_dict["hicexplorer_chicviewpoint"])'''
+    
+    ### To generate additional figure 6 - Transformer repo, run 2, head 1
+    '''t_ip[0, 0] = int(f_dict["Remove beginning1"])
+    t_ip[0, 1] = int(f_dict["Cut1"])
+    t_ip[0, 2] = int(f_dict["param_value_from_file"])
+    t_ip[0, 3] = int(f_dict["kc-align"]) 
+    t_ip[0, 4] = int(f_dict["sarscov2formatter"])'''
+    
+    
+    
+    
     #t_ip[0, 3] = int(f_dict["heinz"])
 
     #t_ip[4] = int(f_dict["prokka"])
@@ -922,7 +948,7 @@ def predict_seq():
     # 3. keras_train_and_eval
     # 4. cardinal_preprocessing, cardinal_segmentations, mass_spectrometry_imaging_filtering
     
-    last_tool_name = "keras_train_and_eval"
+    last_tool_name = "sarscov2formatter"
     
     t_ip = tf.convert_to_tensor(t_ip, dtype=tf.int64)
     t_ip = tf.cast(t_ip, dtype=tf.float32)
@@ -972,7 +998,7 @@ def predict_seq():
     print("Predicted top {} tools with weights: {}".format(n_topk_ind, pred_tools_wts))
     print()
     '''if predict_rnn is False:
-        generated_attention(att_weights, i_names, f_dict, r_dict)'''
+       generated_attention(att_weights, i_names, f_dict, r_dict)'''
 
 
 def generated_attention(attention_weights, i_names, f_dict, r_dict):
@@ -998,11 +1024,19 @@ def generated_attention(attention_weights, i_names, f_dict, r_dict):
 
 
 def plot_attention_head(in_tokens, out_tokens, attention):
+
+  font = {'family': 'serif', 'size': 12}
+  fig_size = (6, 6)
+
+  plt.rc('font', **font)
+  size_title = 28
+  size_label = 24
+  dpi = 150
   # The plot is of the attention when a token was generated.
   # The model didn't generate `<START>` in the output. Skip it.
   #translated_tokens = translated_tokens[1:]
   #print(attention)
-  fig = plt.figure(figsize=(16, 8))
+  fig = plt.figure(figsize=fig_size)
   ax = plt.gca()
   cax = ax.matshow(attention[:len(in_tokens), :len(out_tokens)], interpolation='nearest')
   #ax.imshow(attention[:len(in_tokens), :len(out_tokens)], origin="upper")
@@ -1018,6 +1052,8 @@ def plot_attention_head(in_tokens, out_tokens, attention):
   #cax = ax.matshow(data, interpolation='nearest')
   fig.colorbar(cax)
   plt.tight_layout()
+  plt.savefig("plots/additional_figure_6.pdf", dpi=dpi, bbox_inches='tight')
+  plt.savefig("plots/additional_figure_6.png", dpi=dpi, bbox_inches='tight')
   plt.show()
 
 
