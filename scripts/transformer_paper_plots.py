@@ -40,6 +40,7 @@ num_heads = 4 # Number of attention heads
 ff_dim = 128 # Hidden layer size in feed forward network inside transformer # dff
 dropout = 0.2
 seq_len = 25
+dpi = 300
 
 
 base_path = "/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/backup_tool_pred_transformer_computed_results/aug_22_data/"
@@ -88,7 +89,7 @@ def collect_loss_prec_data(m_type):
     plt.xlabel("Training iteration")
     plt.ylabel("Test loss")
     plt.title("Test: binary crossentropy loss")
-    plt.savefig("plots/transformer_runs_te_loss.pdf", dpi=150)
+    plt.savefig("plots/transformer_runs_te_loss.pdf", dpi=dpi)
     
     ## Transformer: For test precision
     fig = plt.figure(figsize=fig_size)
@@ -182,7 +183,8 @@ def collect_loss_prec_data(m_type):
     plt.ylabel("Precision@k")
     plt.title("Test: precision@k")
     
-    plt.savefig("plots/df_tr_rnn_cnn_dnn_runs_te_prec.pdf", dpi=150, bbox_inches='tight')
+    plt.savefig("plots/df_tr_rnn_cnn_dnn_runs_te_prec.pdf", dpi=dpi, bbox_inches='tight')
+    plt.savefig("plots/df_tr_rnn_cnn_dnn_runs_te_prec.png", dpi=dpi, bbox_inches='tight')
     plt.show()
     
     # with low precision
@@ -205,7 +207,8 @@ def collect_loss_prec_data(m_type):
     plt.ylabel("Precision@k")
     plt.title("Test: precision@k")
     
-    plt.savefig("plots/df_tr_rnn_cnn_dnn_runs_te_prec_low_prec.pdf", dpi=150, bbox_inches='tight')
+    plt.savefig("plots/df_tr_rnn_cnn_dnn_runs_te_prec_low_prec.pdf", dpi=dpi, bbox_inches='tight')
+    plt.savefig("plots/df_tr_rnn_cnn_dnn_runs_te_prec_low_prec.png", dpi=dpi, bbox_inches='tight')
     plt.show()
 
 
@@ -361,7 +364,8 @@ def plot_model_vs_load_time(model_types):
     plt.xlabel("Training step")
     plt.ylabel("Model load time (seconds)")
     plt.title("Transformer, RNN (GRU), CNN and DNN models loading time")
-    plt.savefig("plots/transformer_rnn_runs_model_load_time.pdf", dpi=150, bbox_inches='tight')
+    plt.savefig("plots/transformer_rnn_runs_model_load_time.pdf", dpi=dpi, bbox_inches='tight')
+    plt.savefig("plots/transformer_rnn_runs_model_load_time.png", dpi=dpi, bbox_inches='tight')
     plt.show()
 
 
@@ -436,7 +440,8 @@ def plot_usage_time_vs_topk():
     plt.xlabel("Prediction topk")
     plt.ylabel("Model pred time (seconds)")
     plt.title("Transformer vs RNN (GRU) model pred time")
-    plt.savefig("plots/transformer_rnn_runs_model_pred_time_topk.pdf", dpi=150)
+    plt.savefig("plots/transformer_rnn_runs_model_pred_time_topk.pdf", dpi=dpi)
+    plt.savefig("plots/transformer_rnn_runs_model_pred_time_topk.png", dpi=dpi)
 
 
 def predict_tools_seqlen(tf_loaded_model, test_input, k, m_type):
@@ -509,12 +514,13 @@ def plot_usage_time_vs_seq_len():
     plt.xlabel("Tool sequences length")
     plt.ylabel("Model pred time (seconds)")
     plt.title("Transformer vs RNN (GRU) model pred time")
-    plt.savefig("plots/transformer_rnn_runs_model_pred_time_seq_length.pdf", dpi=150)
+    plt.savefig("plots/transformer_rnn_runs_model_pred_time_seq_length.pdf", dpi=dpi)
+    plt.savefig("plots/transformer_rnn_runs_model_pred_time_seq_length.png", dpi=dpi)
 
 
 ############ Call methods ###########################
 
-#collect_loss_prec_data(["transformer", "rnn", "cnn", "dnn"])
+collect_loss_prec_data(["transformer", "rnn", "cnn", "dnn"])
 plot_model_vs_load_time(["transformer", "rnn", "cnn", "dnn"])
 #plot_usage_time_vs_topk()
 #plot_usage_time_vs_seq_len()

@@ -96,16 +96,17 @@ elif model_type == "dnn":
 
 ## New CPU: Saving model at training step 400/400
 ## 400 steps: Program finished in 1742.0802121162415 seconds
-
+## 4000 steps: Program finished in 15239.454410076141 seconds
 
 ## RNN
 ## GPU: 40,000 steps, batch size: 512 - 129000 seconds
 ## CPU: 40,000 steps, batch size: 512 - 193863 seconds
 
-
 ## New CPU: 400 Saving model at training step 400/400
-
 ### 400 steps Program finished in 2656.933450937271 seconds
+## 4000 steps: Program finished in 17602.801206350327 seconds
+
+
 
 #"log_03_08_22_1/" Balanced data with really selection of low freq tools - random choice
 # RNN: log_01_08_22_3_rnn
@@ -121,6 +122,7 @@ elif model_type == "dnn":
 ### CNN 2
 
 # CPU: Program finished in 206890.36703562737 seconds
+# 400 steps: Program finished in 1914.13667678833 seconds
 
 ### CNN Full data
 
@@ -132,6 +134,7 @@ elif model_type == "dnn":
 # Saving model at training step 40000/40000
 
 # CPU: Program finished in 177232.39850640297 seconds
+# CPU 400 steps: Program finished in 1750.70085811615 seconds
 
 ## DNN 2
 
