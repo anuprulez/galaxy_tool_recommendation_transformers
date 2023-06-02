@@ -22,9 +22,9 @@ Training script: https://github.com/anuprulez/galaxy_tool_recommendation_transfo
 
 License: MIT License
 
-## (To reproduce this work) How to create a sample tool recommendation model:
+## To create a sample tool recommendation model: Reproduce this work
 
-**Note**: To reproduce this work after training on complete model, it is required to have a decent compute resource (with at least 10 GB RAM) and it takes > 24 hrs to create a trained model on complete set of workflows (~ 60,000). However, the following steps can be used to create a sample tool recommendation model on a subset of workflows:
+**Note**: To reproduce this work after training on complete model, it is required to have a decent compute resource (with at least 15 GB RAM) and it takes > 40 hrs to create a trained model on complete set of workflows (~ 60,000). However, the following steps can be used to create a sample tool recommendation model on a subset of workflows:
 
 1. Install the dependencies by executing the following lines:
     *    `conda env create -f environment.yml`
