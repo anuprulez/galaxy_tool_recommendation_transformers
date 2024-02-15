@@ -1,5 +1,7 @@
 # Tool recommender system in Galaxy using Transformers
 
+## Published article: [Transformer-based tool recommendation system in Galaxy](https://doi.org/10.1186/s12859-023-05573-w)
+
 ## General information
 
 Project name: Galaxy tool recommendation using Transformers
