@@ -265,7 +265,11 @@ def recommend_tools():
                 true_tools = [r_dict[str(int(item))] for item in target_pos]
                 
                 if i_names.split(",")[0] == "ctb_online_data_fetch":
-                    generated_attention(i, att_weights[i], i_names, f_dict, r_dict)
+                    print(i, i_names)
+                    print()
+                    print(i, t_names)
+                    print("-----------")
+                    #generated_attention(i, att_weights[i], i_names, f_dict, r_dict)
         print("Batch {} prediction finished ...".format(j+1))
 
 

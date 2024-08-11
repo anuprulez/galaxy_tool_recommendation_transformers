@@ -1,4 +1,5 @@
 import os
+#os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 import time
 import subprocess
 import h5py
@@ -29,21 +30,23 @@ import transformer_network
 warnings.filterwarnings("ignore")
 
 font = {'family': 'serif', 'size': 18}
-fig_size = (12, 12)
+fig_size = (10, 10)
 
 plt.rc('font', **font)
-size_title = 28
-size_label = 24
+size_title = 20
+size_label = 18
 
 embed_dim = 128 # Embedding size for each token d_model
 num_heads = 4 # Number of attention heads
 ff_dim = 128 # Hidden layer size in feed forward network inside transformer # dff
 dropout = 0.2
 seq_len = 25
-dpi = 300
+dpi = 100
 
 
-base_path = "/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/backup_tool_pred_transformer_computed_results/aug_22_data/"
+#base_path = "/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/backup_tool_pred_transformer_computed_results/aug_22_data/"
+
+base_path = "../final_data/aug_22_data/"
 #"/media/anupkumar/6c9b94c9-2316-4ae1-887a-5047a02bc3d7/home/kumara/tool_prediction_compute_results/backup_tool_pred_transformer_computed_results/aug_22_data/"
 #"/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/backup_tool_pred_transformer_computed_results/aug_22_data/"
 #"/media/anupkumar/b1ea0d39-97af-4ba5-983f-cd3ff76cf7a6/tool_prediction_datasets/computed_results/aug_22 data/"
@@ -214,13 +217,18 @@ def collect_loss_prec_data(m_type):
 
 ##################### Model vs load time ###############################
 
-def read_h5_model(run, m_type, m_num):
+def read_h5_model(run, m_type, m_num, test_data_batch=[]):
     #path_test_data = base_path + m_type + "/run" + str(run) + "/saved_data/test.h5"
     #print(path_test_data)
 
-    '''test_file = h5py.File(path_test_data, 'r')
-    test_input = np.array(test_file["input"])
-    test_target = np.array(test_file["target"])'''
+    #test_file = h5py.File(path_test_data, 'r')
+    #test_input = np.array(test_file["input"])
+    #test_target = np.array(test_file["target"])
+
+    #te_x = [499, 2213, 1264,  922,  121, 1966, 1710, 2013,  929, 2059, 2093,  785, 78, 1999, 1460, 1486, 0, 0, 0, 0, 0, 0,    0, 0, 0]
+    te_x = tf.cast(test_data_batch, dtype=tf.float32, name="input_2")
+    #print(te_x)
+    #embed, te_prediction, att_weights = tf_loaded_model(te_x_batch, training=False)
 
     model_path_h5 = base_path + m_type + "/run" + str(run) + "/saved_model/" + str(m_num) + "/tf_model_h5/"
     print(model_path_h5)
@@ -232,13 +240,21 @@ def read_h5_model(run, m_type, m_num):
     m_load_s_time = time.time()
     if m_type == "transformer":
         tf_loaded_model = create_transformer_model(seq_len, len(r_dict) + 1)
+        if len(test_data_batch) > 0:
+            _, _ = tf_loaded_model(te_x, training=False)
     elif m_type == "rnn":
         tf_loaded_model = create_rnn_model(seq_len, len(r_dict) + 1)
+        if len(test_data_batch) > 0:
+            _ = tf_loaded_model(te_x, training=False)
     elif m_type == "cnn":
         print("reading cnn model")
         tf_loaded_model = create_cnn_model(seq_len, len(r_dict) + 1)
+        if len(test_data_batch) > 0:
+            _ = tf_loaded_model(te_x, training=False)
     elif m_type == "dnn":
         tf_loaded_model = create_dnn_model(seq_len, len(r_dict) + 1)
+        if len(test_data_batch) > 0:
+            _ = tf_loaded_model(te_x, training=False)
         
     tf_loaded_model.load_weights(h5_path)
     m_load_e_time = time.time()
@@ -316,9 +332,8 @@ def create_cnn_model(maxlen, vocab_size):
 
 
 def plot_model_vs_load_time(model_types):
-    model_numbers = ["1000", "2000", "3000", "4000", "5000", "10000", "20000", "25000", "30000", "35000"] 
-    input_seq_lengths = [1, 5, 10, 15, 20]
-    top_k = [1, 5, 10, 15, 20]
+    #model_numbers = ["1000", "2000", "3000", "4000", "5000", "10000", "20000", "25000", "30000", "35000"]
+    model_numbers = ["10000", "30000"]
     transformer_model_num = list()
     rnn_model_num = list()
     transformer_load_time = list()
@@ -352,7 +367,6 @@ def plot_model_vs_load_time(model_types):
     print(cnn_load_time, len(cnn_load_time))
     print()
     print(dnn_load_time, len(dnn_load_time))
-    
 
     df_tran_rnn_dnn_cnn_model_load_time = pd.DataFrame(zip(rnn_model_num, transformer_load_time, rnn_load_time, cnn_load_time, dnn_load_time,), columns=["model_nums", "tran_load_time", "rnn_load_time", "cnn_load_time", "dnn_load_time"])
     fig = plt.figure(figsize=fig_size)
@@ -366,6 +380,108 @@ def plot_model_vs_load_time(model_types):
     plt.title("Transformer, RNN (GRU), CNN and DNN models loading time")
     plt.savefig("plots/transformer_rnn_runs_model_load_time.pdf", dpi=dpi, bbox_inches='tight')
     plt.savefig("plots/transformer_rnn_runs_model_load_time.png", dpi=dpi, bbox_inches='tight')
+    plt.show()
+
+
+def plot_model_vs_load_time_final_iteration(model_types):
+    # ["transformer", "rnn", "cnn", "dnn"]
+    #model_numbers = ["1000", "2000", "3000", "4000", "5000", "10000", "20000", "25000", "30000", "35000"]
+    model_numbers = 35000
+    transformer_model_num = list()
+    rnn_model_num = list()
+    transformer_load_time = list()
+    rnn_load_time = list()
+    cnn_load_time = list()
+    dnn_load_time = list()
+    load_times = list()
+    batch_size = 128
+    path_test_data = base_path + "rnn/run1/saved_data/test.h5"
+    test_file = h5py.File(path_test_data, 'r')
+    test_input = np.array(test_file["input"])
+    print(test_input.shape)
+    
+    for m_type in model_types:
+        for run in range(n_runs):
+            tf_loaded_model, f_dict, r_dict, class_weights, compatible_tools, published_connections, model_loading_time = read_h5_model(run+1, m_type, model_numbers, test_input[:batch_size, :]) #test_input[:batch_size, :]
+            print("Run: {}, model: {}, model number: {}, loading time: {} seconds".format(run+1, m_type, model_numbers, model_loading_time))
+            print()
+            if m_type == "transformer":
+                transformer_load_time.append(model_loading_time)
+                #labels.append("Transformer")
+            elif m_type == "rnn":
+                rnn_load_time.append(model_loading_time)
+                #labels.append("RNN")
+            elif m_type == "cnn":
+                cnn_load_time.append(model_loading_time)
+                #labels.append("CNN")
+            elif m_type == "dnn":
+                dnn_load_time.append(model_loading_time)
+                #labels.append("DNN")
+        print("Run ends")
+    print(transformer_load_time, len(transformer_load_time))
+    print()
+    print(rnn_load_time, len(rnn_load_time))
+    print()
+    print(cnn_load_time, len(cnn_load_time))
+    print()
+    print(dnn_load_time, len(dnn_load_time))
+    l_tran = ["Transformer", "Transformer", "Transformer", "Transformer", "Transformer"]
+    l_rnn = ["RNN", "RNN", "RNN", "RNN", "RNN"]
+    l_cnn = ["CNN", "CNN", "CNN", "CNN", "CNN"]
+    l_dnn = ["DNN", "DNN", "DNN", "DNN", "DNN"]
+    
+    #labels = ["Transformer", "RNN", "CNN", "DNN"]
+    df_model_load_times = pd.DataFrame(zip(l_tran, l_rnn, l_cnn, l_dnn, transformer_load_time, rnn_load_time, cnn_load_time, dnn_load_time,), columns=["l_tran", "l_rnn", "l_cnn", "l_dnn", "tran_load_time", "rnn_load_time", "cnn_load_time", "dnn_load_time"])
+    #model_load_times = pd.DataFrame(zip(labels, load_times), columns=["labels", "load_times"])
+    #fig = plt.figure(figsize=fig_size)
+    #sns.lineplot(data=df_tran_rnn_dnn_cnn_model_load_time, x="model_nums", y="tran_load_time", label="Transformer: model load time", linestyle="-", color="green")
+    #sns.lineplot(data=df_tran_rnn_dnn_cnn_model_load_time, x="model_nums", y="rnn_load_time", label="RNN (GRU): model load time", color="red", linestyle="-")
+    #sns.lineplot(data=df_tran_rnn_dnn_cnn_model_load_time, x="model_nums", y="cnn_load_time", label="CNN: model load time", linestyle="-", color="blue")
+    #sns.lineplot(data=df_tran_rnn_dnn_cnn_model_load_time, x="model_nums", y="dnn_load_time", label="DNN: model load time", color="black", linestyle="-")
+
+    #sns.barplot(data=df_model_load_times, x="l_tran", y="tran_load_time", label="", linestyle="-", color="green")
+    #sns.barplot(data=df_model_load_times, x="l_rnn", y="rnn_load_time", label="", linestyle="-", color="red")
+    #sns.barplot(data=df_model_load_times, x="l_cnn", y="cnn_load_time", label="", linestyle="-", color="blue")
+    #sns.barplot(data=df_model_load_times, x="l_dnn", y="dnn_load_time", label="", linestyle="-", color="black")
+    
+    #sns.barplot(data=df_tran_rnn_dnn_cnn_model_load_time, x="Transformer", y="tran_load_time", label="Transformer: model load time", linestyle="-", color="green")
+    
+    #plt.grid(True)
+    #plt.xlabel("Model types")
+    #plt.ylabel("Model load time (seconds)")
+    #plt.title("Transformer, RNN (GRU), CNN and DNN models loading time")
+    #plt.savefig("../plots/transformer_rnn_runs_model_load_time_final_model.pdf", dpi=dpi, bbox_inches='tight')
+    #plt.savefig("../plots/transformer_rnn_runs_model_load_time_final_model.png", dpi=dpi, bbox_inches='tight')
+    #plt.show()
+    df_model_load_times.to_csv("../plots/transformer_rnn_runs_model_load_time_final_model_GPU.csv")
+
+def plot_model_load_times_CPU_GPU():
+    print("")
+    gpu_load_times = pd.read_csv("../plots/transformer_rnn_runs_model_load_time_final_model_GPU.csv")
+    #gpu_load_times["compute_type"] = ["GPU", "GPU", "GPU", "GPU", "GPU"]
+    cpu_load_times = pd.read_csv("../plots/transformer_rnn_runs_model_load_time_final_model_CPU.csv")
+    #cpu_load_times["compute_type"] = ["CPU", "CPU", "CPU", "CPU", "CPU"]
+
+    sns.barplot(data=gpu_load_times, x="l_tran", y="tran_load_time", label="", color="green", errorbar="sd", capsize=.2)
+    sns.barplot(data=gpu_load_times, x="l_rnn", y="rnn_load_time", label="", color="red", errorbar="sd", capsize=.2)
+    sns.barplot(data=gpu_load_times, x="l_cnn", y="cnn_load_time", label="", color="blue", errorbar="sd", capsize=.2)
+    sns.barplot(data=gpu_load_times, x="l_dnn", y="dnn_load_time", label="", color="black", errorbar="sd", capsize=.2)
+
+    #sns.barplot(data=cpu_load_times, x="l_tran", y="tran_load_time", label="", linestyle="-", color="green")
+    #sns.barplot(data=cpu_load_times, x="l_rnn", y="rnn_load_time", label="", linestyle="-", color="red")
+    #sns.barplot(data=cpu_load_times, x="l_cnn", y="cnn_load_time", label="", linestyle="-", color="blue")
+    #sns.barplot(data=cpu_load_times, x="l_dnn", y="dnn_load_time", label="", linestyle="-", color="black")
+
+
+    
+    #sns.barplot(data=df_tran_rnn_dnn_cnn_model_load_time, x="Transformer", y="tran_load_time", label="Transformer: model load time", linestyle="-", color="green")
+    
+    plt.grid(True)
+    plt.xlabel("Model types")
+    plt.ylabel("Time (seconds)")
+    plt.title("Models vs their usage time")
+    plt.savefig("../plots/transformer_rnn_runs_model_load_time_final_model_GPU.pdf", dpi=dpi, bbox_inches='tight')
+    plt.savefig("../plots/transformer_rnn_runs_model_load_time_final_model_GPU.png", dpi=dpi, bbox_inches='tight')
     plt.show()
 
 
@@ -470,7 +586,7 @@ def predict_tools_seqlen(tf_loaded_model, test_input, k, m_type):
 def plot_usage_time_vs_seq_len():
     
     model_types = ["transformer", "rnn"]
-    m_num = 40000
+    m_num = 35000
     input_seq_lengths = [1, 5, 10, 15, 20]
     transformer_seq_lengths = list()
     rnn_seq_lengths = list()
@@ -514,13 +630,59 @@ def plot_usage_time_vs_seq_len():
     plt.xlabel("Tool sequences length")
     plt.ylabel("Model pred time (seconds)")
     plt.title("Transformer vs RNN (GRU) model pred time")
-    plt.savefig("plots/transformer_rnn_runs_model_pred_time_seq_length.pdf", dpi=dpi)
-    plt.savefig("plots/transformer_rnn_runs_model_pred_time_seq_length.png", dpi=dpi)
+    plt.savefig("../plots/transformer_rnn_runs_model_pred_time_seq_length.pdf", dpi=dpi)
+    plt.savefig("../plots/transformer_rnn_runs_model_pred_time_seq_length.png", dpi=dpi)
+
+
+def make_scatter_beyond_training():
+
+    font = {'family': 'serif', 'size': 18}
+    fig_size = (12, 6)
+    #fig = plt.figure(figsize=fig_size)
+    plt.rc('font', **font)
+
+    dpi = 300
+    analysis = "Single-cell"
+    input_tool = "anndata_import"
+    ground_truth = ["scanpy_filter", "anndata_inspect", "anndata_manipulate", "ucsc_cell_browser", "scanpy_inspect", "scanpy_filter_cells"]
+
+    pred_transformer_gt = ground_truth
+    pred_rnn_gt = ground_truth
+
+    pred_transformer_b_training = ["scanpy_normalise_data", "scanpy_plot", "anndata_ops", "scanpy_remove_confounders", "scanpy_integrate_harmony", "scanpy_normalize", "scpred_get_feature_space", "scanpy_find_variable_genes", "scpred_predict_labels", "scpred_eigen_decompose"]
+    
+    pred_rnn_b_training = ["scanpy_plot", "scanpy_normalise_data", "scmap_scmap_cluster", "scmap_scmap_cell", "scanpy_filter_genes"]
+    
+    xlabels = ["Transformer", "RNN"]
+
+    xtypes = ["Transformer", "RNN"]
+    
+    matrix = [len(pred_transformer_b_training), len(pred_rnn_b_training)]
+
+    df_recommendations = pd.DataFrame(zip(xlabels, matrix, xtypes), columns=["xlabels", "recommendations", "model_types"])
+
+    print(df_recommendations)
+
+    palette = {'Transformer': "green", 'RNN': "red"}
+
+    ax = sns.barplot(df_recommendations, x="xlabels", y="recommendations", hue="model_types", palette=palette, width=0.3, dodge=False);
+    
+    plt.grid(True)
+    ax.set_xticks(xlabels)
+    plt.xlabel("Model types")
+    plt.ylabel("Number of recommended tools")
+    plt.title("Anndata_import: Generalisation")
+    plt.tight_layout()
+    plt.savefig("../plots/transformer_rnn_beyond_workflows.pdf", dpi=dpi)
+    plt.savefig("../plots/transformer_rnn_beyond_workflows.png", dpi=dpi)
 
 
 ############ Call methods ###########################
 
-collect_loss_prec_data(["transformer", "rnn", "cnn", "dnn"])
-plot_model_vs_load_time(["transformer", "rnn", "cnn", "dnn"])
+#collect_loss_prec_data(["transformer", "rnn", "cnn", "dnn"])
+#plot_model_vs_load_time(["transformer", "rnn", "cnn", "dnn"])
+#plot_model_vs_load_time_final_iteration(["transformer", "rnn", "cnn", "dnn"])
+#plot_model_load_times_CPU_GPU()
 #plot_usage_time_vs_topk()
 #plot_usage_time_vs_seq_len()
+make_scatter_beyond_training()
