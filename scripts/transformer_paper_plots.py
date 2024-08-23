@@ -467,7 +467,7 @@ def plot_model_load_times_CPU_GPU():
     #sns.barplot(data=gpu_load_times, x="l_cnn", y="cnn_load_time", label="", color="blue", errorbar="sd", capsize=.2)
     #sns.barplot(data=gpu_load_times, x="l_dnn", y="dnn_load_time", label="", color="black", errorbar="sd", capsize=.2)
 
-    sns.barplot(data=cpu_load_times, x="l_tran", y="tran_load_time", label="", linestyle="-", color="green", edgecolor = 'black', linewidth = 2)
+    sns.barplot(data=cpu_load_times, x="l_tran", y="tran_load_time", label="", linestyle="-", color="blue", edgecolor = 'black', linewidth = 2)
     sns.barplot(data=cpu_load_times, x="l_rnn", y="rnn_load_time", label="", linestyle="-", color="red", edgecolor = 'black', linewidth = 2)
     #sns.barplot(data=cpu_load_times, x="l_cnn", y="cnn_load_time", label="", linestyle="-", color="blue")
     #sns.barplot(data=cpu_load_times, x="l_dnn", y="dnn_load_time", label="", linestyle="-", color="black")
@@ -688,7 +688,7 @@ def create_test_precision_plot():
     df_prec = pd.read_csv("../plots/df_tr_rnn_cnn_dnn_runs_te_prec.csv", sep="\t")
     print(df_prec)
     
-    sns.lineplot(data=df_prec, x="indices", y="tran_prec", label="Transformer", color="green", linestyle="-")
+    sns.lineplot(data=df_prec, x="indices", y="tran_prec", label="Transformer", color="blue", linestyle="-")
     sns.lineplot(data=df_prec, x="indices", y="rnn_prec", label="RNN", color="red", linestyle="-")
     #sns.lineplot(data=df_prec, x="indices", y="cnn_prec", label="CNN", color="blue", linestyle="-")
     #sns.lineplot(data=df_prec, x="indices", y="dnn_prec", label="DNN", color="black", linestyle="-")
@@ -738,6 +738,51 @@ def make_grouped_stacked_beyond_training():
     plt.tight_layout()
     plt.savefig("../plots/transformer_rnn_stacked_beyond_workflows.pdf", dpi=dpi, bbox_inches='tight')
     plt.savefig("../plots/transformer_rnn_stacked_beyond_workflows.png", dpi=dpi, bbox_inches='tight')
+    plt.show()
+
+
+def make_grouped_stacked_beyond_training_transformer():
+    font = {'family': 'serif', 'size': 18}
+    fig_size = (12, 12)
+    fig = plt.figure(figsize=fig_size)
+    plt.rc('font', **font)
+    dpi=300
+    data = pd.DataFrame({
+        'Scientific analyses': ['Deep learning', 'Single-cell', 'Variant calling',  'Proteomics'],
+        'Ground truth': [2, 6, 7, 1],
+        'Novel': [3, 10, 5, 12],
+    })
+
+    #df = pd.DataFrame({'Day': ['Mon', 'Tue', 'Wed', 'Thur', 'Fri'],
+    #               'Morning': [44, 46, 49, 59, 54],
+    #               'Evening': [33, 46, 50, 49, 60]})
+
+    # single cell: (anndata_import) [10, 5]
+    # deep learning: "keras_train_and_eval" [3, 1]
+    # variant calling: "snpeff_sars_cov_2" [5, 3]
+    # proteomics: massspectrometryimagingfiltering, cardinalpreprocessing, cardinalsegmentations [12, 0]
+    # Pivot the data to have categories as columns
+    #pivot_data = data.pivot(index='Group', columns='Model types', values='Value')
+    #palette = {'Transformer': "green", 'RNN': "red"}
+    # Create the stacked bar plot 
+    #pivot_data.plot(kind='barh', color=palette, edgecolor = 'black', linewidth = 2) #, stacked=True
+
+    sns.set(style='white')
+
+    #create stacked bar chart
+    data.set_index('Scientific analyses').plot(kind='bar', stacked=True, color=['green', 'purple'])
+
+    plt.grid(True)
+    plt.ylabel("Number of recommended tools")
+    plt.xlabel("Types of scientific analyses")
+    plt.title("Tool recommendations by Transformer")
+    #plt.yticks([0, 2, 4, 6, 8, 10, 12, 14])
+    #plt.ylim((0, 40))
+    plt.xticks(rotation=45)
+    #plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+    plt.tight_layout()
+    plt.savefig("../plots/transformer_stacked_beyond_workflows.pdf", dpi=dpi, bbox_inches='tight')
+    plt.savefig("../plots/transformer_stacked_beyond_workflows.png", dpi=dpi, bbox_inches='tight')
     plt.show()
 
 
@@ -806,7 +851,8 @@ def plot_model_training_times_CPU():
 #plot_usage_time_vs_topk()
 #plot_usage_time_vs_seq_len()
 #make_bar_beyond_training()
-make_grouped_stacked_beyond_training()
+#make_grouped_stacked_beyond_training()
+make_grouped_stacked_beyond_training_transformer()
 #make_age_prediction_scatter_plot()
 #plot_model_training_times_CPU()
 #create_test_precision_plot()
