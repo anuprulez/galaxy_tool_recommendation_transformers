@@ -1,4 +1,5 @@
 import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 import sys
 import time
 import subprocess
@@ -16,9 +17,6 @@ from tensorflow import keras
 from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.layers import Dense, GRU, Dropout, Embedding, SpatialDropout1D, Input, GlobalAveragePooling1D
 from tensorflow.keras.layers import MultiHeadAttention, LayerNormalization, Dropout, Layer
-
-
-
 
 
 batch_size = 100
@@ -40,10 +38,11 @@ predict_rnn = False
 # Unzip the H5 test data, store the H5 file at `models/transformer/saved_data/*.h5`.
 # Verify the test data and model paths.
 
-run_number = "run2/"
-model_number = 40000
+run_number = "run6_att_mask/" #"run2/"
+model_number = 50 #40000
 
-base_path = "../final_data/aug_22_data/transformer/" + run_number
+#base_path = "../final_data/aug_22_data/transformer/" + run_number
+base_path = "../log/"
 
 
 
@@ -63,13 +62,13 @@ class TransformerBlock(Layer):
         self.dropout1 = Dropout(rate)
         self.dropout2 = Dropout(rate)
 
-    def call(self, inputs, training):
-        attn_output, attention_scores = self.att(inputs, inputs, inputs, return_attention_scores=True, training=training)
+    def call(self, inputs, att_mask, training=True):
+        attn_output, attention_scores = self.att(inputs, inputs, inputs, attention_mask=att_mask, return_attention_scores=True, training=training)
         attn_output = self.dropout1(attn_output, training=training)
         out1 = self.layernorm1(inputs + attn_output)
         ffn_output = self.ffn(out1)
         ffn_output = self.dropout2(ffn_output, training=training)
-        return self.layernorm2(out1 + ffn_output), attention_scores
+        return self.layernorm2(out1 + ffn_output), attention_scores, att_mask
 
 
 class TokenAndPositionEmbedding(Layer):
@@ -104,7 +103,7 @@ def write_file(file_path, content):
         json_file.write(json.dumps(content))
 
 
-def create_transformer_model(maxlen, vocab_size):
+'''def create_transformer_model(maxlen, vocab_size):
     inputs = Input(shape=(maxlen,))
     embedding_layer = TokenAndPositionEmbedding(maxlen, vocab_size, embed_dim)
     x = embedding_layer(inputs)
@@ -115,7 +114,26 @@ def create_transformer_model(maxlen, vocab_size):
     x = Dense(ff_dim, activation="relu")(x)
     x = Dropout(dropout)(x)
     outputs = Dense(vocab_size, activation="sigmoid")(x)
-    return Model(inputs=inputs, outputs=[x, outputs, weights])
+    return Model(inputs=inputs, outputs=[x, outputs, weights])'''
+
+
+def create_transformer_model(maxlen, vocab_size):
+
+    inputs = Input(shape=(maxlen,))
+    embedding_layer = TokenAndPositionEmbedding(maxlen, vocab_size, embed_dim)
+    x = embedding_layer(inputs)
+    encoder_pad_mask = tf.math.not_equal(inputs, 0)  # shape [B, S]
+    encoder_pad_mask = tf.expand_dims(encoder_pad_mask, axis=1)
+    encoder_pad_mask = tf.tile(encoder_pad_mask, [1, maxlen, 1])
+    att_mask = tf.cast(encoder_pad_mask, dtype=tf.int32)
+    transformer_block = TransformerBlock(embed_dim, num_heads, ff_dim)
+    x, weights, att_msk = transformer_block(x, att_mask)
+    x = GlobalAveragePooling1D()(x)
+    x = Dropout(dropout)(x)
+    x = Dense(ff_dim, activation="relu")(x)
+    x = Dropout(dropout)(x)
+    outputs = Dense(vocab_size, activation="sigmoid")(x)
+    return Model(inputs=inputs, outputs=[outputs, weights, att_msk])
 
 
 def get_u_tr_labels(y_tr):
@@ -228,10 +246,39 @@ def recommend_tools():
         y_train_batch = test_target[j * batch_size : j * batch_size + batch_size, :]
 
         te_x_batch = tf.cast(te_x_batch, dtype=tf.float32, name="input_2")
+
+        #print(te_x_batch)
+
+        #te_x_batch_attention_mask = tf.cast(te_x_batch == 0, dtype=tf.float32)
+
+        #print(te_x_batch_attention_mask)
+
+        #te_x_batch_attention_mask = tf.expand_dims(tf.expand_dims(te_x_batch_attention_mask, axis=1), axis=1)
+
+        #print(te_x_batch_attention_mask, te_x_batch_attention_mask.shape)
         
+        #caled_attention_logits += (mask * -1e9)
+
         pred_s_time = time.time()
 
-        embed, te_prediction, att_weights = tf_loaded_model(te_x_batch, training=False)
+        te_prediction, att_weights, att_mask = tf_loaded_model(te_x_batch, training=False)
+        
+        #scaled_attention_logits = att_weights
+
+        #print(scaled_attention_logits)
+        
+        #scaled_attention_logits += (te_x_batch_attention_mask * -1e2)
+
+        #print(scaled_attention_logits)
+
+        #attention_weights = tf.nn.softmax(scaled_attention_logits, axis=-1)
+
+        #print(attention_weights)
+
+        #print(att_weights.shape, attention_weights.shape)
+
+        #print(attention_weights)
+        #att_weights = attention_weights
            
         pred_e_time = time.time()
         diff_time = (pred_e_time - pred_s_time) / float(batch_size)
@@ -242,7 +289,8 @@ def recommend_tools():
             t_ip = te_x_batch[i]
             tar = y_train_batch[i]
             prediction = te_prediction[i]
-            if len(np.where(inp > 0)[0]) <= max_seq_len:
+            inp_seq_len = len(np.where(inp > 0)[0])
+            if inp_seq_len <= max_seq_len - 1:
                 real_prediction = np.where(tar > 0)[0]
                 target_pos = real_prediction
 
@@ -263,13 +311,18 @@ def recommend_tools():
                 last_i_tool = [r_dict[str(int(item))] for item in t_ip[label_pos]][-1]
 
                 true_tools = [r_dict[str(int(item))] for item in target_pos]
-                
+                #print(i, i_names)
+                #print()
+                #print(i, t_names)
+                #print("-----------")
+                #generated_attention(i, att_weights[i], i_names, f_dict, r_dict)
                 if i_names.split(",")[0] == "ctb_online_data_fetch":
                     print(i, i_names)
                     print()
                     print(i, t_names)
                     print("-----------")
-                    #generated_attention(i, att_weights[i], i_names, f_dict, r_dict)
+                    generated_attention(i, att_weights[i], i_names, f_dict, r_dict)
+                    break
         print("Batch {} prediction finished ...".format(j+1))
 
 
@@ -288,72 +341,36 @@ def generated_attention(tool_seq_index, attention_weights, i_names, f_dict, r_di
     for h, head in enumerate(attention_heads):
       plot_attention_head(in_tokens, out_tokens, head, h, tool_seq_index)
       #plot_attention_head_bokeh(in_tokens, out_tokens, head, h, tool_seq_index)
+      #break
 
 
 def plot_attention_head(in_tokens, out_tokens, attention, h, tool_seq_index):
   fig_size = (16, 8)
-  font = {'family': 'serif', 'size': 24}
+  font = {'family': 'serif', 'size': 12}
   plt.rc('font', **font)
   fig = plt.figure(figsize=fig_size)
   ax = plt.gca()
   cax = ax.matshow(attention[:len(in_tokens), :len(out_tokens)], interpolation='nearest')
+  #cax = ax.matshow(attention, interpolation='nearest')
+  print(attention)
+  #col_sum = np.sum(attention, axis=0)
+  #row_sum = np.sum(attention, axis=1)
+  row_sum = np.sum(attention[:len(in_tokens), :len(out_tokens)], axis=1)
+  row_sum_all = np.sum(attention, axis=1)
+  print(in_tokens)
+  print(row_sum, row_sum_all)
+  
+  #ax.set_xticks(range(len(in_tokens)))
+  #ax.set_xticklabels(in_tokens, rotation=90)
 
-  ax.set_xticks(range(len(in_tokens)))
-  ax.set_xticklabels(in_tokens, rotation=90)
-
-  ax.set_yticks(range(len(out_tokens)))
-  ax.set_yticklabels(out_tokens)
+  #ax.set_yticks(range(len(out_tokens)))
+  #ax.set_yticklabels(out_tokens)
+    
   fig.colorbar(cax)
   plt.tight_layout()
   plt.show()
-  f_name = "../attention_plots/{}{}/attention_plot_seq_num_{}_head_num_{}.png".format(run_number, model_number,tool_seq_index, h)
-  plt.savefig(f_name, dpi=300)
-
-
-def plot_attention_head_bokeh(in_tokens, out_tokens, attention, h, tool_seq_index):
-    from bokeh.io import output_file, show
-    from bokeh.plotting import figure
-    from bokeh.transform import linear_cmap
-    from bokeh.models import ColorBar, BasicTicker, PrintfTickFormatter, ColumnDataSource
-    from bokeh.layouts import layout
-    from bokeh.palettes import Viridis256
-    import numpy as np
-    
-    # Generate some synthetic data for the heatmap
-    data = attention[:len(in_tokens), :len(out_tokens)] #np.random.random((10, 10))
-    
-    # Prepare data for Bokeh
-    x = in_tokens #np.arange(0, 10)
-    y = out_tokens #np.arange(0, 10)
-    xx, yy = np.meshgrid(x, y)
-    d = {'x': xx.flatten(), 'y': yy.flatten(), 'value': data.flatten()}
-    
-    source = ColumnDataSource(d)
-    
-    # Define the color mapper for the heatmap
-    mapper = linear_cmap(field_name='value', palette=Viridis256, low=min(d['value']), high=max(d['value']))
-    
-    # Create a figure for the heatmap
-    p = figure(title="Heatmap Example", 
-               x_axis_label='X-Axis', y_axis_label='Y-Axis', 
-               tools="", toolbar_location=None, 
-               x_range=(0, 10), y_range=(0, 10))
-    
-    # Create the heatmap by drawing rectangles
-    p.rect(x='x', y='y', width=1, height=1, source=source,
-           line_color=None, fill_color=mapper)
-
-    # Add color bar
-    color_bar = ColorBar(color_mapper=mapper['transform'], width=8, location=(0,0),
-                         ticker=BasicTicker(desired_num_ticks=10),
-                         formatter=PrintfTickFormatter(format="%.2f"))
-
-    p.add_layout(color_bar, 'right')
-    
-    # Show the plot
-    f_name = "../attention_plots/{}{}/attention_plot_seq_num_{}_head_num_{}.html".format(run_number, model_number,tool_seq_index, h)
-    output_file(f_name)
-    show(p)
+  f_name = "../attention_plots/{}{}/ctb/attention_plot_seq_num_{}_head_num_{}.png".format(run_number, model_number, tool_seq_index, h)
+  plt.savefig(f_name, dpi=100) #300
 
 
 recommend_tools()

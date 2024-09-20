@@ -3,7 +3,7 @@ import numpy as np
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
-from tensorflow.keras.layers import Dense, Dropout, GlobalAveragePooling1D, Input
+from tensorflow.keras.layers import Dense, Dropout, GlobalAveragePooling1D, Input, Masking
 from tensorflow.keras.models import Model
 
 import utils
@@ -20,16 +20,27 @@ def create_model(vocab_size, config):
     dropout = config["dropout"]
 
     inputs = Input(shape=(max_len,))
+    #mask = np.ones((config["tr_batch_size"], max_len, max_len))
+    #masking_layer = Masking()
     embedding_layer = transformer_network.TokenAndPositionEmbedding(max_len, vocab_size, embed_dim)
     x = embedding_layer(inputs)
+    encoder_pad_mask = tf.math.not_equal(inputs, 0)  # shape [B, S]
+    encoder_pad_mask = tf.expand_dims(encoder_pad_mask, axis=1)
+    encoder_pad_mask = tf.tile(encoder_pad_mask, [1, max_len, 1])
+    #unmasked_embedding = tf.cast(
+    #    tf.tile(tf.expand_dims(inputs, axis=-1), [1, 1, max_len]), tf.float32
+    #)
+    #masked_embedding = masking_layer(unmasked_embedding)
+    att_mask = tf.cast(encoder_pad_mask, dtype=tf.int32)
+    #print("att_mask shape: ", att_mask.shape, att_mask)
     transformer_block = transformer_network.TransformerBlock(embed_dim, config["n_heads"], ff_dim)
-    x, weights = transformer_block(x)
+    x, weights, att_msk = transformer_block(x, att_mask)
     x = GlobalAveragePooling1D()(x)
     x = Dropout(dropout)(x)
     x = Dense(ff_dim, activation="relu")(x)
     x = Dropout(dropout)(x)
     outputs = Dense(vocab_size, activation="sigmoid")(x)
-    return Model(inputs=inputs, outputs=[outputs, weights])
+    return Model(inputs=inputs, outputs=[outputs, weights, att_msk])
 
 
 def create_enc_transformer(train_data, train_labels, test_data, test_labels, f_dict, r_dict, c_wts, c_tools, pub_conn, tr_t_freq, config):
@@ -76,7 +87,10 @@ def create_enc_transformer(train_data, train_labels, test_data, test_labels, f_d
         print("Batch train data size: ", batch_index, x_train.shape, y_train.shape)
         all_sel_tool_ids.extend(sel_tools)
         with tf.GradientTape() as model_tape:
-            prediction, att_weights = model(x_train, training=True)
+            #att_mask = tf.cast(x_train != 0, dtype=tf.float32)
+            #print(x_train, x_train.shape)
+            prediction, att_weights, att_mask_out = model(x_train, training=True) #, training=True
+            #print("After training", att_mask_out, att_mask_out.shape)
             tr_loss, tr_cat_loss = utils.compute_loss(y_train, prediction)
             tr_acc = tf.reduce_mean(utils.compute_acc(y_train, prediction))
         trainable_vars = model.trainable_variables

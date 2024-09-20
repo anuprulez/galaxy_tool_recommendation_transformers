@@ -259,7 +259,7 @@ def validate_model(te_x, te_y, te_batch_size, model, f_dict, r_dict, ulabels_te_
     te_x_batch, y_train_batch, _ = sample_balanced_te_y(te_x, te_y, ulabels_te_dict, te_batch_size)
     print("Batch test data size: ", te_x_batch.shape, y_train_batch.shape)
     if model_type == "transformer":
-        te_pred_batch, _ = model(te_x_batch, training=False)
+        te_pred_batch, _, _ = model(te_x_batch, training=False)
     else:
         te_pred_batch = model(te_x_batch, training=False)
     test_acc = tf.reduce_mean(compute_acc(y_train_batch, te_pred_batch))
@@ -294,7 +294,7 @@ def validate_model(te_x, te_y, te_batch_size, model, f_dict, r_dict, ulabels_te_
     low_te_data = te_x[lowest_t_ids]
     low_te_labels = te_y[lowest_t_ids]
     if model_type == "transformer":
-        low_te_pred_batch, _ = model(low_te_data, training=False)
+        low_te_pred_batch, _, _ = model(low_te_data, training=False)
     else:
         low_te_pred_batch = model(low_te_data, training=False)
     low_test_err, low_test_categorical_loss = compute_loss(low_te_labels, low_te_pred_batch)

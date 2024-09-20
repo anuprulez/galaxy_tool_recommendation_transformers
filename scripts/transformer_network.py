@@ -16,13 +16,13 @@ class TransformerBlock(Layer):
         self.dropout1 = Dropout(rate)
         self.dropout2 = Dropout(rate)
 
-    def call(self, inputs, training):
-        attn_output, attention_scores = self.att(inputs, inputs, inputs, return_attention_scores=True, training=training)
+    def call(self, inputs, att_mask, training=True):
+        attn_output, attention_scores = self.att(inputs, inputs, inputs, attention_mask=att_mask, return_attention_scores=True, training=training)
         attn_output = self.dropout1(attn_output, training=training)
         out1 = self.layernorm1(inputs + attn_output)
         ffn_output = self.ffn(out1)
         ffn_output = self.dropout2(ffn_output, training=training)
-        return self.layernorm2(out1 + ffn_output), attention_scores
+        return self.layernorm2(out1 + ffn_output), attention_scores, att_mask
 
 class TokenAndPositionEmbedding(Layer):
     def __init__(self, maxlen, vocab_size, embed_dim):
