@@ -18,26 +18,26 @@ def create_model(vocab_size, config):
     ff_dim = config["feed_forward_dim"]
     max_len = config["maximum_path_length"]
     dropout = config["dropout"]
+    n_heads = config["n_heads"]
 
     inputs = Input(shape=(max_len,))
-    #mask = np.ones((config["tr_batch_size"], max_len, max_len))
-    #masking_layer = Masking()
     embedding_layer = transformer_network.TokenAndPositionEmbedding(max_len, vocab_size, embed_dim)
     x = embedding_layer(inputs)
-    encoder_pad_mask = tf.math.not_equal(inputs, 0)  # shape [B, S]
+    encoder_pad_mask = tf.math.not_equal(inputs, 0)
     encoder_pad_mask = tf.expand_dims(encoder_pad_mask, axis=1)
     encoder_pad_mask = tf.tile(encoder_pad_mask, [1, max_len, 1])
-    #unmasked_embedding = tf.cast(
-    #    tf.tile(tf.expand_dims(inputs, axis=-1), [1, 1, max_len]), tf.float32
-    #)
-    #masked_embedding = masking_layer(unmasked_embedding)
-    att_mask = tf.cast(encoder_pad_mask, dtype=tf.int32)
-    #print("att_mask shape: ", att_mask.shape, att_mask)
-    transformer_block = transformer_network.TransformerBlock(embed_dim, config["n_heads"], ff_dim)
+    encoder_pad_mask = tf.expand_dims(encoder_pad_mask, axis=1)
+    encoder_pad_mask = tf.tile(encoder_pad_mask, [1, n_heads, 1, 1])
+    att_mask = encoder_pad_mask
+    att_mask = tf.cast(att_mask, dtype=tf.int32)
+    
+    print("att_mask shape: ", att_mask.shape, att_mask)
+    transformer_block = transformer_network.TransformerBlock(embed_dim, n_heads, ff_dim)
     x, weights, att_msk = transformer_block(x, att_mask)
-    x = GlobalAveragePooling1D()(x)
+    flatten = tf.keras.layers.Flatten()
+    x = flatten(x)
     x = Dropout(dropout)(x)
-    x = Dense(ff_dim, activation="relu")(x)
+    x = Dense(ff_dim, activation="relu", kernel_initializer=tf.keras.initializers.HeNormal())(x)
     x = Dropout(dropout)(x)
     outputs = Dense(vocab_size, activation="sigmoid")(x)
     return Model(inputs=inputs, outputs=[outputs, weights, att_msk])
@@ -87,10 +87,7 @@ def create_enc_transformer(train_data, train_labels, test_data, test_labels, f_d
         print("Batch train data size: ", batch_index, x_train.shape, y_train.shape)
         all_sel_tool_ids.extend(sel_tools)
         with tf.GradientTape() as model_tape:
-            #att_mask = tf.cast(x_train != 0, dtype=tf.float32)
-            #print(x_train, x_train.shape)
-            prediction, att_weights, att_mask_out = model(x_train, training=True) #, training=True
-            #print("After training", att_mask_out, att_mask_out.shape)
+            prediction, att_weights, att_mask_out = model(x_train, training=True)
             tr_loss, tr_cat_loss = utils.compute_loss(y_train, prediction)
             tr_acc = tf.reduce_mean(utils.compute_acc(y_train, prediction))
         trainable_vars = model.trainable_variables
@@ -114,8 +111,7 @@ def create_enc_transformer(train_data, train_labels, test_data, test_labels, f_d
             utils.write_file(base_path + "data/epo_te_batch_categorical_loss.txt", test_cat_loss)
             utils.write_file(base_path + "data/epo_te_precision.txt", te_prec)
             utils.write_file(base_path + "data/epo_low_te_precision.txt", low_te_prec)
-            
-            
+
         print()
         if (batch_index+1) % tr_log_step == 0:
             print("Saving model at training step {}/{}".format(batch_index + 1, n_train_steps))

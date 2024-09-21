@@ -18,16 +18,17 @@ from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.layers import Dense, GRU, Dropout, Embedding, SpatialDropout1D, Input, GlobalAveragePooling1D
 from tensorflow.keras.layers import MultiHeadAttention, LayerNormalization, Dropout, Layer
 
+import transformer_network
 
 batch_size = 100
-test_batches = 1000
+test_batches = 1
 n_topk = 1
 max_seq_len = 25
 
 embed_dim = 128 # Embedding size for each token d_model
 num_heads = 4 # Number of attention heads
 ff_dim = 128 # Hidden layer size in feed forward network inside transformer # dff
-dropout = 0.2
+dropout = 0.5
 seq_len = 25
 
 # Set to true only when RNN model should be executed
@@ -39,21 +40,20 @@ predict_rnn = False
 # Verify the test data and model paths.
 
 run_number = "run6_att_mask/" #"run2/"
-model_number = 50 #40000
+model_number = 2000 #40000
+tool_cat = "new_all_init_flatten_long"
 
-#base_path = "../final_data/aug_22_data/transformer/" + run_number
-base_path = "../log/"
-
-
+base_path = "../final_data/aug_22_data/transformer/" + run_number
+#base_path = "../log/"
 
 model_path = base_path + "saved_model/" + str(model_number) + "/tf_model/"
 model_path_h5 = base_path + "saved_model/" + str(model_number) + "/tf_model_h5/"
 
 
-class TransformerBlock(Layer):
+'''class TransformerBlock(Layer):
     def __init__(self, embed_dim, num_heads, ff_dim, rate=0.1):
         super(TransformerBlock, self).__init__()
-        self.att = MultiHeadAttention(num_heads=num_heads, key_dim=embed_dim, dropout=rate)
+        self.att = MultiHeadAttention(num_heads=num_heads, key_dim=embed_dim, dropout=rate) #, attention_axes=[1]
         self.ffn = Sequential(
             [Dense(ff_dim, activation="relu"), Dense(embed_dim)]
         )
@@ -82,7 +82,7 @@ class TokenAndPositionEmbedding(Layer):
         positions = tf.range(start=0, limit=maxlen, delta=1)
         positions = self.pos_emb(positions)
         x = self.token_emb(x)
-        return x + positions
+        return x + positions'''
 
 
 def read_file(file_path):
@@ -114,18 +114,70 @@ def write_file(file_path, content):
     x = Dense(ff_dim, activation="relu")(x)
     x = Dropout(dropout)(x)
     outputs = Dense(vocab_size, activation="sigmoid")(x)
-    return Model(inputs=inputs, outputs=[x, outputs, weights])'''
+    return Model(inputs=inputs, outputs=[x, outputs, weights])
+
+    embed_dim = config["embedding_dim"]
+    ff_dim = config["feed_forward_dim"]
+    max_len = config["maximum_path_length"]
+    dropout = config["dropout"]
+    n_heads = config["n_heads"]'''
 
 
 def create_transformer_model(maxlen, vocab_size):
-
+    
     inputs = Input(shape=(maxlen,))
-    embedding_layer = TokenAndPositionEmbedding(maxlen, vocab_size, embed_dim)
+    embedding_layer = transformer_network.TokenAndPositionEmbedding(maxlen, vocab_size, embed_dim)
     x = embedding_layer(inputs)
     encoder_pad_mask = tf.math.not_equal(inputs, 0)  # shape [B, S]
     encoder_pad_mask = tf.expand_dims(encoder_pad_mask, axis=1)
     encoder_pad_mask = tf.tile(encoder_pad_mask, [1, maxlen, 1])
-    att_mask = tf.cast(encoder_pad_mask, dtype=tf.int32)
+    encoder_pad_mask = tf.expand_dims(encoder_pad_mask, axis=1)
+    encoder_pad_mask = tf.tile(encoder_pad_mask, [1, num_heads, 1, 1])
+    att_mask = encoder_pad_mask
+    att_mask = tf.cast(att_mask, dtype=tf.int32)
+    
+    print("att_mask shape: ", att_mask.shape, att_mask)
+    transformer_block = transformer_network.TransformerBlock(embed_dim, num_heads, ff_dim)
+    x, weights, att_msk = transformer_block(x, att_mask)
+    #x = GlobalAveragePooling1D()(x)
+    flatten = tf.keras.layers.Flatten()
+    x = flatten(x)
+    x = Dropout(dropout)(x)
+    x = Dense(ff_dim, activation="relu", kernel_initializer=tf.keras.initializers.HeNormal())(x)
+    x = Dropout(dropout)(x)
+    outputs = Dense(vocab_size, activation="sigmoid")(x)
+    return Model(inputs=inputs, outputs=[outputs, weights, att_msk])
+
+
+'''def create_transformer_model(maxlen, vocab_size):
+
+    inputs = Input(shape=(maxlen,))
+    embedding_layer = TokenAndPositionEmbedding(maxlen, vocab_size, embed_dim)
+    x = embedding_layer(inputs)
+    #encoder_pad_mask = tf.math.not_equal(inputs, 0)  # shape [B, S]
+    #encoder_pad_mask = tf.expand_dims(encoder_pad_mask, axis=1)
+    #encoder_pad_mask = tf.tile(encoder_pad_mask, [1, maxlen, 1])
+    #encoder_pad_mask = tf.expand_dims(encoder_pad_mask, axis=1)
+    #encoder_pad_mask = tf.tile(encoder_pad_mask, [1, num_heads, 1, 1])
+    #att_mask = tf.cast(encoder_pad_mask, dtype=tf.int32)
+    #encoder_pad_mask = tf.math.not_equal(inputs, 0)  # shape [B, S]
+    #encoder_pad_mask = tf.expand_dims(encoder_pad_mask, axis=1)
+    #encoder_pad_mask = encoder_pad_mask[:, tf.newaxis, :]
+    #att_mask = encoder_pad_mask
+    #att_mask = tf.cast(att_mask, dtype=tf.int32)
+    #encoder_pad_mask = tf.tile(encoder_pad_mask, [1, maxlen, 1])
+    #att_mask = encoder_pad_mask #tf.cast(encoder_pad_mask, dtype=tf.int32)
+    #att_mask = tf.cast(att_mask, dtype=tf.int32)
+
+    encoder_pad_mask = tf.math.not_equal(inputs, 0)  # shape [B, S]
+    encoder_pad_mask = tf.expand_dims(encoder_pad_mask, axis=1)
+    encoder_pad_mask = tf.tile(encoder_pad_mask, [1, maxlen, 1])
+    #encoder_pad_mask = tf.expand_dims(encoder_pad_mask, axis=1)
+    #encoder_pad_mask = tf.tile(encoder_pad_mask, [1, max_len, 1])
+    encoder_pad_mask = tf.expand_dims(encoder_pad_mask, axis=1)
+    encoder_pad_mask = tf.tile(encoder_pad_mask, [1, num_heads, 1, 1])
+    att_mask = encoder_pad_mask #tf.cast(encoder_pad_mask, dtype=tf.int32)
+    att_mask = tf.cast(att_mask, dtype=tf.int32)
     transformer_block = TransformerBlock(embed_dim, num_heads, ff_dim)
     x, weights, att_msk = transformer_block(x, att_mask)
     x = GlobalAveragePooling1D()(x)
@@ -133,7 +185,7 @@ def create_transformer_model(maxlen, vocab_size):
     x = Dense(ff_dim, activation="relu")(x)
     x = Dropout(dropout)(x)
     outputs = Dense(vocab_size, activation="sigmoid")(x)
-    return Model(inputs=inputs, outputs=[outputs, weights, att_msk])
+    return Model(inputs=inputs, outputs=[outputs, weights, att_msk])'''
 
 
 def get_u_tr_labels(y_tr):
@@ -245,9 +297,11 @@ def recommend_tools():
         te_x_batch = test_input[j * batch_size : j * batch_size + batch_size, :]
         y_train_batch = test_target[j * batch_size : j * batch_size + batch_size, :]
 
-        te_x_batch = tf.cast(te_x_batch, dtype=tf.float32, name="input_2")
+        te_x_batch = tf.cast(te_x_batch, dtype=tf.int32, name="input_2")
 
-        #print(te_x_batch)
+        #att_mask = tf.cast(att_mask, dtype=tf.int32)
+
+        print(te_x_batch)
 
         #te_x_batch_attention_mask = tf.cast(te_x_batch == 0, dtype=tf.float32)
 
@@ -294,11 +348,11 @@ def recommend_tools():
                 real_prediction = np.where(tar > 0)[0]
                 target_pos = real_prediction
 
-                prediction_wts = tf.math.multiply(c_weights, prediction)
+                #prediction_wts = tf.math.multiply(c_weights, prediction)
 
                 n_topk = len(target_pos)
                 top_k = tf.math.top_k(prediction, k=n_topk, sorted=True)
-                top_k_wts = tf.math.top_k(prediction_wts, k=n_topk, sorted=True)
+                #top_k_wts = tf.math.top_k(prediction_wts, k=n_topk, sorted=True)
 
                 t_ip = t_ip.numpy()
                 label_pos = np.where(t_ip > 0)[0]
@@ -311,22 +365,26 @@ def recommend_tools():
                 last_i_tool = [r_dict[str(int(item))] for item in t_ip[label_pos]][-1]
 
                 true_tools = [r_dict[str(int(item))] for item in target_pos]
-                #print(i, i_names)
-                #print()
+                print(i, i_names)
+                print()
                 #print(i, t_names)
                 #print("-----------")
-                #generated_attention(i, att_weights[i], i_names, f_dict, r_dict)
-                if i_names.split(",")[0] == "ctb_online_data_fetch":
+                #print(att_mask.shape)
+                #print(att_mask[i])
+                #break
+                generated_attention(i, j, att_weights[i], i_names, f_dict, r_dict)
+                '''if i_names.split(",")[0] == "ctb_online_data_fetch":
                     print(i, i_names)
                     print()
-                    print(i, t_names)
-                    print("-----------")
-                    generated_attention(i, att_weights[i], i_names, f_dict, r_dict)
-                    break
+                    #print(i, t_names)
+                    #print("-----------")
+                    #print(att_mask[i])
+                    generated_attention(i, j, att_weights[i], i_names, f_dict, r_dict)
+                    #break'''
         print("Batch {} prediction finished ...".format(j+1))
 
 
-def generated_attention(tool_seq_index, attention_weights, i_names, f_dict, r_dict):
+def generated_attention(tool_seq_index, batch_id, attention_weights, i_names, f_dict, r_dict):
     try:
         attention_heads = tf.squeeze(attention_weights, 0)
     except:
@@ -339,37 +397,37 @@ def generated_attention(tool_seq_index, attention_weights, i_names, f_dict, r_di
 
     #mean_att = np.mean(attention_heads, axis=0)
     for h, head in enumerate(attention_heads):
-      plot_attention_head(in_tokens, out_tokens, head, h, tool_seq_index)
+      plot_attention_head(in_tokens, out_tokens, head, h, tool_seq_index, batch_id)
       #plot_attention_head_bokeh(in_tokens, out_tokens, head, h, tool_seq_index)
       #break
 
 
-def plot_attention_head(in_tokens, out_tokens, attention, h, tool_seq_index):
+def plot_attention_head(in_tokens, out_tokens, attention, h, tool_seq_index, batch_id):
   fig_size = (16, 8)
   font = {'family': 'serif', 'size': 12}
   plt.rc('font', **font)
   fig = plt.figure(figsize=fig_size)
   ax = plt.gca()
-  cax = ax.matshow(attention[:len(in_tokens), :len(out_tokens)], interpolation='nearest')
+  cax = ax.matshow(attention[:len(in_tokens), :len(out_tokens)]) #, interpolation='nearest'
   #cax = ax.matshow(attention, interpolation='nearest')
-  print(attention)
+  #print(attention)
   #col_sum = np.sum(attention, axis=0)
   #row_sum = np.sum(attention, axis=1)
   row_sum = np.sum(attention[:len(in_tokens), :len(out_tokens)], axis=1)
-  row_sum_all = np.sum(attention, axis=1)
+  #row_sum_all = np.sum(attention, axis=1)
   print(in_tokens)
-  print(row_sum, row_sum_all)
+  print(row_sum)
   
-  #ax.set_xticks(range(len(in_tokens)))
-  #ax.set_xticklabels(in_tokens, rotation=90)
+  ax.set_xticks(range(len(in_tokens)))
+  ax.set_xticklabels(in_tokens, rotation=90)
 
-  #ax.set_yticks(range(len(out_tokens)))
-  #ax.set_yticklabels(out_tokens)
+  ax.set_yticks(range(len(out_tokens)))
+  ax.set_yticklabels(out_tokens)
     
   fig.colorbar(cax)
   plt.tight_layout()
   plt.show()
-  f_name = "../attention_plots/{}{}/ctb/attention_plot_seq_num_{}_head_num_{}.png".format(run_number, model_number, tool_seq_index, h)
+  f_name = "../attention_plots/{}{}/{}/attention_plot_batch_num_{}_seq_num_{}_head_num_{}.png".format(run_number, model_number, tool_cat, batch_id, tool_seq_index, h)
   plt.savefig(f_name, dpi=100) #300
 
 

@@ -7,9 +7,15 @@ from tensorflow.keras.models import Sequential
 class TransformerBlock(Layer):
     def __init__(self, embed_dim, num_heads, ff_dim, rate=0.1):
         super(TransformerBlock, self).__init__()
-        self.att = MultiHeadAttention(num_heads=num_heads, key_dim=embed_dim, dropout=rate)
+        self.att = MultiHeadAttention(num_heads=num_heads, 
+                                      key_dim=embed_dim, 
+                                      dropout=rate, 
+                                      kernel_initializer=tf.keras.initializers.GlorotUniform(),
+                                      bias_initializer=tf.keras.initializers.Zeros(),
+                                     )
         self.ffn = Sequential(
-            [Dense(ff_dim, activation="relu"), Dense(embed_dim)]
+            [Dense(ff_dim, activation="relu", kernel_initializer=tf.keras.initializers.HeNormal()), 
+             Dense(embed_dim, activation="relu", kernel_initializer=tf.keras.initializers.HeNormal())]
         )
         self.layernorm1 = LayerNormalization(epsilon=1e-6)
         self.layernorm2 = LayerNormalization(epsilon=1e-6)
